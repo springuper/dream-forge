@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { margin: 0; padding: 20px; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.mock-page { background: white; width: 320px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15); min-height: 600px; overflow: hidden; }
+.mock-header { background: linear-gradient(135deg, #e63946 0%, #c1121f 100%); padding: 30px 16px; text-align: center; }
+.mock-header h2 { color: white; margin: 0; font-size: 24px; }
+.mock-header p { color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 12px; }
+.mock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+.mock-item { border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+.mock-item-img { height: 80px; background: #eee; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px; }
+.mock-item-info { padding: 8px; }
+.mock-item-name { font-size: 11px; color: #333; margin: 0 0 4px; }
+.mock-item-price { font-size: 14px; color: #e63946; font-weight: bold; margin: 0; }
+.mock-footer { background: #333; padding: 16px; text-align: center; }
+.mock-footer p { color: rgba(255,255,255,0.7); font-size: 10px; margin: 0; }
+.option-text { text-align: center; padding: 20px; }
+.option-text h3 { margin: 0 0 8px; }
+.option-text p { color: #666; margin: 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<div style="text-align:center; margin-bottom: 24px;">
+  <h2 style="margin:0 0 8px;">Layout Options</h2>
+  <p style="color:#666; margin:0;">How should products be arranged on the page?</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)" style="display:block; max-width:500px; margin:0 auto 24px; padding:20px; border:2px solid #e0e0e0; border-radius:12px; cursor:pointer;">
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="letter" style="width:40px; height:40px; background:#e63946; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; flex-shrink:0;">A</div>
+      <div class="content">
+        <h3 style="margin:0 0 4px;">Two-Column Grid</h3>
+        <p style="margin:0; color:#666; font-size:14px;">Products in 2-column grid — compact, easy to scan</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)" style="display:block; max-width:500px; margin:0 auto 24px; padding:20px; border:2px solid #e0e0e0; border-radius:12px; cursor:pointer;">
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="letter" style="width:40px; height:40px; background:#457b9d; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; flex-shrink:0;">B</div>
+      <div class="content">
+        <h3 style="margin:0 0 4px;">Single-Column List</h3>
+        <p style="margin:0; color:#666; font-size:14px;">One product per row — larger images, more detail</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)" style="display:block; max-width:500px; margin:0 auto 24px; padding:20px; border:2px solid #e0e0e0; border-radius:12px; cursor:pointer;">
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="letter" style="width:40px; height:40px; background:#2a9d8f; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; flex-shrink:0;">C</div>
+      <div class="content">
+        <h3 style="margin:0 0 4px;">Featured + Grid Mix</h3>
+        <p style="margin:0; color:#666; font-size:14px;">Hero banner at top, then 2-column grid below</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:500px; margin:30px auto; background:#f9f9f9; border-radius:12px; padding:20px;">
+  <h4 style="margin:0 0 12px;">Preview: Option A (2-Column Grid)</h4>
+  <div class="mock-page">
+    <div class="mock-header">
+      <h2>Weekly Specials</h2>
+      <p>Valid May 4-10, 2026</p>
+    </div>
+    <div class="mock-grid">
+      <div class="mock-item">
+        <div class="mock-item-img">Img</div>
+        <div class="mock-item-info">
+          <p class="mock-item-name">Organic Milk 1L</p>
+          <p class="mock-item-price">$3.99</p>
+        </div>
+      </div>
+      <div class="mock-item">
+        <div class="mock-item-img">Img</div>
+        <div class="mock-item-info">
+          <p class="mock-item-name">Fresh Eggs 12pk</p>
+          <p class="mock-item-price">$4.49</p>
+        </div>
+      </div>
+      <div class="mock-item">
+        <div class="mock-item-img">Img</div>
+        <div class="mock-item-info">
+          <p class="mock-item-name">Whole Wheat Bread</p>
+          <p class="mock-item-price">$2.99</p>
+        </div>
+      </div>
+      <div class="mock-item">
+        <div class="mock-item-img">Img</div>
+        <div class="mock-item-info">
+          <p class="mock-item-name">Orange Juice 1L</p>
+          <p class="mock-item-price">$3.29</p>
+        </div>
+      </div>
+    </div>
+    <div class="mock-footer">
+      <p>Shop Smart — Save Big</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSelect(el) {
+  document.querySelectorAll('.option').forEach(o => o.style.borderColor = '#e0e0e0');
+  el.style.borderColor = '#e63946';
+}
+</script>
+</body>
+</html>
