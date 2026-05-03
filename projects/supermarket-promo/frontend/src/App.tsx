@@ -1,3 +1,5 @@
+import PromoEditor from './pages/PromoEditor'
+
 export default function App() {
-  return <div>Supermarket Promo Editor</div>
+  return <PromoEditor />
 }
