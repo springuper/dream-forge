@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { SegmentedControl, NumberInput, FileInput, Stack, Group, Paper, Text, TextInput } from '@mantine/core'
+import { SegmentedControl, FileInput, Stack, Group, Paper, Text, TextInput } from '@mantine/core'
 import ProductGrid from '../components/ProductGrid'
 import HeaderConfig from '../components/HeaderConfig'
 import FooterConfig from '../components/FooterConfig'
