@@ -1,4 +1,4 @@
-import { NumberInput, TextInput } from '@mantine/core'
+import { NumberInput, FileButton, Button, Stack, Text } from '@mantine/core'
 import type { ThemeConfig } from '../types'
 
 interface HeaderConfigProps {
@@ -8,13 +8,19 @@ interface HeaderConfigProps {
 
 export default function HeaderConfig({ config, onChange }: HeaderConfigProps) {
   return (
-    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-      <TextInput
-        label="Image URL"
-        value={config.imagePath}
-        onChange={(e) => onChange({ ...config, imagePath: e.target.value })}
-        style={{ flex: 1 }}
-      />
+    <Stack gap="xs">
+      <FileButton onChange={(file) => {
+        if (file) {
+          onChange({ ...config, imagePath: URL.createObjectURL(file) })
+        }
+      }} accept="image/*">
+        {(props) => <Button {...props} variant="light" size="xs">Upload Image</Button>}
+      </FileButton>
+      {config.imagePath && (
+        <Text size="xs" c="dimmed" style={{ wordBreak: 'break-all' }}>
+          Current: {config.imagePath.substring(0, 50)}...
+        </Text>
+      )}
       <NumberInput
         label="Height (px)"
         value={config.height}
@@ -23,6 +29,6 @@ export default function HeaderConfig({ config, onChange }: HeaderConfigProps) {
         onChange={(val) => onChange({ ...config, height: Number(val) })}
         style={{ width: 100 }}
       />
-    </div>
+    </Stack>
   )
 }
