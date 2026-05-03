@@ -6,19 +6,26 @@ Generate supermarket promotion pages from CSV files containing product name, pri
 
 ## Tech Stack
 
-- **Single HTML page** — plain HTML, CSS, JavaScript (no framework)
-- **Browser-based export** — generate preview in browser, then export as image via browser screenshot/capture
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19 + Vite |
+| UI Library | Mantine UI |
+| Backend | Node.js + Express |
+| State Persistence | Backend storage (multiple draft support) |
+| Image Export | html2canvas + canvas download |
 
 ## Directory Structure
 
 ```
 supermarket-promo/
-├── index.html          # Main page
-├── styles.css          # Styles
-├── script.js           # Logic
-├── config.json         # Layout & theme config
-├── sample.csv          # Sample data
-└── README.md
+├── frontend/           # React SPA
+│   ├── src/
+│   ├── package.json
+│   └── vite.config.ts
+├── backend/            # Express API
+│   ├── src/
+│   └── package.json
+└── docs/
 ```
 
 ## Features
@@ -35,19 +42,28 @@ supermarket-promo/
 - Configurable image paths
 - Scalable width and height for each element
 
+### State Persistence
+- Backend saves project state
+- Support multiple promo drafts
+
+### Image Export
+- Render page to canvas via html2canvas
+- Download directly as PNG/JPG
+
 ### Post-Export Editing
-- "Hot price" / special offer annotations can be added after initial export
-- Browser-based二次加工 before final image export
+- "Hot price" / special offer annotations supported
+- Edit in browser before final export
 
 ## Workflow
 
 ```
-CSV + Config → Generate Preview → Browser Export → Post-edit (optional) → Final Image
+CSV + Config → Generate Preview → Edit (optional) → html2canvas Export → Final Image Download
 ```
 
 ## Initial Scope
 
-- Single HTML output with CSS grid layout
+- Full-stack React + Express application
+- Mantine UI for configuration interface
 - CSV parsing with basic validation
-- Config-driven layout (column count) and theme (header/footer/background images)
-- No server-side generation — all client-side
+- Config-driven layout (column count) and theme (header/footer/background images with scalable dimensions)
+- html2canvas-based image export with direct download
