@@ -51,36 +51,40 @@ interface ThemeConfig {
 
 ---
 
-## Feature 2: CSV + Image Upload Workflow
+## Feature 2: Folder Upload (CSV + Images)
 
 ### Interaction Flow
 
-1. **Upload CSV** — user selects `.csv` file
-2. **Parse & Detect** — extract `name`, `price`, `image_path` columns
-3. **Show Missing Images** — for each `image_path` value, show upload UI if image can't be loaded
-4. **Batch Upload** — user can select multiple images at once
-5. **Auto-Mapping** — replace `image_path` with blob URLs after upload
+1. **Upload Folder** — user selects a folder containing CSV + images
+2. **Auto-Detect CSV** — scan folder for `.csv` file
+3. **Auto-Match Images** — match `image_path` filenames to files in folder
+4. **Show Results** — display matched products with status
 
 ### UI Design
 
 ```
-[Upload CSV Button]
+[Upload Folder Button] — "Select folder with CSV and images"
 
-↓ CSV uploaded
+↓ Folder selected
+
+[Processing indicator]
 
 [Product List] - shows N products detected
-  - Product 1: image [Upload] [status: missing/ready]
-  - Product 2: image [Upload] [status: ready]
+  - Product 1: ✅ matched
+  - Product 2: ✅ matched
   ...
 
-[Batch Upload Button] - "Select N images to upload"
+If any files can't be matched:
+  [Warning] N images not found in folder
 ```
 
 ### Image Path Resolution
 
-- After CSV upload, check if each `image_path` is a valid URL or local file
-- If path looks like a filename (no extension or doesn't start with http), show as "missing"
-- After user uploads matching image file, replace blob URL into the product's image field
+- Parse CSV to get `name`, `price`, `image_path`
+- For each `image_path` value:
+  - Check if a file with that exact filename exists in the uploaded folder
+  - If found: create blob URL and mark as ready
+  - If not found: show as missing with manual upload option
 
 ### Data Model
 
@@ -92,6 +96,12 @@ interface Product {
   imageStatus: 'missing' | 'ready'
 }
 ```
+
+### Technical Implementation
+
+- Use `<input type="file" webkitdirectory multiple>` to select folder
+- File API: `entry.file()` to read files from DirectoryEntry
+- Match by exact filename (case-insensitive for robustness)
 
 ---
 
@@ -130,7 +140,7 @@ interface CanvasConfig {
 - `frontend/src/components/HeaderConfig.tsx` — add crop controls
 - `frontend/src/components/FooterConfig.tsx` — add crop controls
 - `frontend/src/components/BackgroundConfig.tsx` — add crop controls
-- `frontend/src/components/ProductGrid.tsx` — add per-product image upload
+- `frontend/src/components/ProductGrid.tsx` — show image match status
 - `frontend/src/pages/PromoEditor.tsx` — integrate all new features
 - `frontend/src/types/index.ts` — extend types
 
@@ -143,5 +153,6 @@ interface CanvasConfig {
 ## Implementation Order
 
 1. Canvas size config (simplest, no dependencies)
-2. Image crop controls for Header/Footer/Background (isolated)
-3. CSV + image upload workflow (integrates with ProductGrid)
+2. Folder upload (CSV + images auto-match) — replaces CSV-only upload
+3. Image crop controls for Header/Footer/Background (isolated)
+4. CSV + image upload workflow (integrates with ProductGrid)
