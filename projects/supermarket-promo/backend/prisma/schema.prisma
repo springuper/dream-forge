@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model PromoProject {
+  id        String   @id @default(uuid())
+  name      String
+  config    String   @default("{}")   // JSON string: {columns, headerConfig, footerConfig, backgroundConfig}
+  products  String   @default("[]")    // JSON string: [{name, price, imagePath}]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
