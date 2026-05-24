@@ -1,0 +1,5 @@
+mlx
+mlx-lm
+huggingface_hub
+beautifulsoup4
+lxml
