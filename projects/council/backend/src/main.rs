@@ -4,7 +4,7 @@ pub mod models;
 pub mod skill;
 
 use crate::handlers::auth::{get_current_user, google_callback, google_login};
-use crate::handlers::chat::{answer_question, start_conversation, AppState};
+use crate::handlers::chat::{answer_question, generate_advice, start_conversation, AppState};
 use axum::{routing::get, Router};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -14,6 +14,9 @@ use tower_http::cors::{Any, CorsLayer};
 async fn main() {
     tracing_subscriber::fmt::init();
 
+    let state = Arc::new(AppState::new());
+    state.load_skills(std::path::PathBuf::from("skills")).await;
+
     let app = Router::new()
         .route("/health", get(|| async { "ok" }))
         .route("/api/auth/google", get(google_login))
@@ -21,7 +24,8 @@ async fn main() {
         .route("/api/auth/me", get(get_current_user))
         .route("/api/chat/start", get(start_conversation))
         .route("/api/chat/answer", get(answer_question))
-        .with_state(Arc::new(AppState::new()))
+        .route("/api/chat/advice", get(generate_advice))
+        .with_state(state)
         .layer(CorsLayer::new().allow_origin(Any).allow_headers(Any));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));

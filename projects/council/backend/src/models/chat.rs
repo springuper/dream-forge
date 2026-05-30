@@ -36,3 +36,25 @@ pub struct AnswerQuestionRequest {
     pub conversation_id: String,
     pub answer: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AdviceRequest {
+    pub context: ConversationContext,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct KnowledgeFragment {
+    pub topic: String,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AdviceForCounselor {
+    pub advice: String,
+    pub fragments: Vec<KnowledgeFragment>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AdviceResponse {
+    pub advice: std::collections::HashMap<String, AdviceForCounselor>,
+}
