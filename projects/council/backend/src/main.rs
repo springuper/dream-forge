@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod skill;
 
 use crate::handlers::auth::{get_current_user, google_callback, google_login};
 use axum::{routing::get, Router};
