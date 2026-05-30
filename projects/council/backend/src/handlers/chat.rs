@@ -7,6 +7,7 @@ use crate::models::chat::{
     AdviceForCounselor, AdviceRequest, AdviceResponse, AnswerQuestionRequest,
     ConversationContext, ConversationPhase, KnowledgeFragment, StartConversationRequest,
 };
+use crate::models::profile::UserProfileUpdate;
 use crate::skill::{SkillLoader, CounselorSkill};
 
 pub struct AppState {
@@ -147,4 +148,69 @@ fn extract_fragments(skill: &CounselorSkill, query: &str) -> Vec<KnowledgeFragme
         .filter(|f| query.contains(&f.topic) || f.topic.contains("通用"))
         .cloned()
         .collect()
+}
+
+/// Complete conversation - generate advice and diarize user profile
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CompleteConversationRequest {
+    pub context: ConversationContext,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConversationCompleteResponse {
+    pub advice: AdviceResponse,
+    pub profile_hints: UserProfileUpdate,
+}
+
+/// Generate advice and diarize user profile from conversation
+pub async fn complete_conversation(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CompleteConversationRequest>,
+) -> Result<Json<ConversationCompleteResponse>, StatusCode> {
+    // Generate advice
+    let advice = generate_advice(State(state), Json(AdviceRequest {
+        context: req.context.clone(),
+    })).await?;
+
+    // Diarize user profile from conversation
+    let profile_hints = diarize_user_profile(&req.context).await?;
+
+    Ok(Json(ConversationCompleteResponse {
+        advice,
+        profile_hints,
+    }))
+}
+
+/// Extract user profile attributes from conversation using LLM
+async fn diarize_user_profile(context: &ConversationContext) -> Result<UserProfileUpdate, StatusCode> {
+    let prompt = format!(
+        "分析以下对话，提取用户画像：\n\n\
+        谋士：{:?}\n\
+        初始问题：{}\n\
+        问答：{:?}\n\n\
+        输出JSON格式：{{
+            \"situation\": \"用户处境摘要\",
+            \"cautiousness\": 0-1分数,
+            \"assertiveness\": 0-1分数,
+            \"risk_tolerance\": 0-1分数,
+            \"thinking_style\": \"理性分析型/直觉型\",
+            \"favored_counselors\": [\"偏好的谋士列表\"]
+        }}",
+        context.counselors,
+        context.initial_problem,
+        context.socratic_answers
+    );
+
+    let response = call_gemini(&prompt).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let update: UserProfileUpdate = serde_json::from_str(&response).unwrap_or(UserProfileUpdate {
+        situation: None,
+        cautiousness: 0.5,
+        assertiveness: 0.5,
+        risk_tolerance: 0.5,
+        thinking_style: "未知".to_string(),
+        favored_counselors: vec![],
+    });
+    Ok(update)
 }
