@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConversationContext {
     pub user_id: String,
     pub counselors: Vec<String>,
@@ -9,7 +9,7 @@ pub struct ConversationContext {
     pub current_phase: ConversationPhase,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SocraticAnswer {
     pub question_id: String,
     pub question: String,

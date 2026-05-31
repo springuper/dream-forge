@@ -1,11 +1,12 @@
 use axum::{extract::State, http::StatusCode, Json};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::llm::call_gemini;
+use crate::llm::call;
 use crate::models::chat::{
     AdviceForCounselor, AdviceRequest, AdviceResponse, AnswerQuestionRequest,
-    ConversationContext, ConversationPhase, KnowledgeFragment, StartConversationRequest,
+    ConversationContext, ConversationPhase, StartConversationRequest,
 };
 use crate::models::profile::UserProfileUpdate;
 use crate::skill::{SkillLoader, CounselorSkill};
@@ -76,7 +77,7 @@ pub async fn generate_initial_question(problem: &str) -> Result<String, StatusCo
         problem
     );
 
-    call_gemini(&prompt)
+    call(&prompt)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -97,7 +98,7 @@ pub async fn generate_followup_question(
         problem, answers_text
     );
 
-    call_gemini(&prompt)
+    call(&prompt)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -115,7 +116,7 @@ pub async fn generate_advice(
 
         if let Some(skill) = skill {
             let prompt = build_advice_prompt(skill, &req.context);
-            let advice_text = call_gemini(&prompt)
+            let advice_text = call(&prompt)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -142,11 +143,14 @@ fn build_advice_prompt(skill: &CounselorSkill, context: &ConversationContext) ->
     )
 }
 
-fn extract_fragments(skill: &CounselorSkill, query: &str) -> Vec<KnowledgeFragment> {
+fn extract_fragments(skill: &CounselorSkill, query: &str) -> Vec<crate::models::chat::KnowledgeFragment> {
     // Simple keyword matching on knowledge_fragments
     skill.knowledge_fragments.iter()
         .filter(|f| query.contains(&f.topic) || f.topic.contains("通用"))
-        .cloned()
+        .map(|f| crate::models::chat::KnowledgeFragment {
+            topic: f.topic.clone(),
+            content: f.content.clone(),
+        })
         .collect()
 }
 
@@ -176,7 +180,7 @@ pub async fn complete_conversation(
     let profile_hints = diarize_user_profile(&req.context).await?;
 
     Ok(Json(ConversationCompleteResponse {
-        advice,
+        advice: advice.0,
         profile_hints,
     }))
 }
@@ -201,7 +205,7 @@ async fn diarize_user_profile(context: &ConversationContext) -> Result<UserProfi
         context.socratic_answers
     );
 
-    let response = call_gemini(&prompt).await
+    let response = call(&prompt).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let update: UserProfileUpdate = serde_json::from_str(&response).unwrap_or(UserProfileUpdate {
