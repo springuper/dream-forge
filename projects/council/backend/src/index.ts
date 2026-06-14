@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { authHandlers } from './handlers/auth.js';
 import { conversationHandlers } from './handlers/conversation.js';
 
 const fastify = Fastify({
@@ -10,6 +11,7 @@ await fastify.register(cors, {
   origin: true
 });
 
+await fastify.register(authHandlers);
 await fastify.register(conversationHandlers);
 
 fastify.get('/health', async () => {

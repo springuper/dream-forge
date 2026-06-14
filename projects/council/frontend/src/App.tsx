@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import { CounselorSelect } from './components/CounselorSelect'
 import { SocraticQuestions } from './components/SocraticQuestions'
 import { AdviceCards } from './components/AdviceCards'
@@ -15,10 +16,11 @@ import {
   User,
 } from './api/client'
 import { useAuth } from './hooks/useAuth'
+import AuthCallback from './pages/AuthCallback'
 
 type Phase = 'select' | 'socratic' | 'advice'
 
-function App() {
+function MainApp() {
   const { user, loading: authLoading, login, logout } = useAuth()
   const [phase, setPhase] = useState<Phase>('select')
   const [skills, setSkills] = useState<SkillInfo[]>([])
@@ -33,7 +35,6 @@ function App() {
   const [initialProblem, setInitialProblem] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Fetch skills on mount
   useEffect(() => {
     if (user) {
       listSkills().then(setSkills).catch(console.error)
@@ -46,7 +47,6 @@ function App() {
     setSelectedCounselors(counselors)
     setIsLoading(true)
 
-    // Prompt for initial problem
     const problem = prompt('请描述您的问题或困境：')
     if (!problem) {
       setIsLoading(false)
@@ -88,15 +88,12 @@ function App() {
 
       setContext(updatedContext)
 
-      // Check if we've completed the Socratic phase
       if (updatedContext.current_phase === 'WaitingForAdvice' || !updatedContext.current_question) {
-        // Move to advice phase
         const { advice, profile_hints } = await completeConversation(updatedContext)
         setAdviceData(advice)
         setProfileHints(profile_hints)
         setPhase('advice')
       } else {
-        // Continue with next question
         setCurrentQuestion(updatedContext.current_question!)
         setQuestionIndex(updatedContext.question_index)
       }
@@ -108,7 +105,6 @@ function App() {
     }
   }
 
-  // Auth loading or not logged in
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-100">
@@ -136,7 +132,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-stone-100">
-      {/* Header with user info */}
       <div className="bg-white border-b border-stone-200 p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-stone-800">个人智囊团</h1>
         <div className="flex items-center gap-4">
@@ -197,4 +192,11 @@ function App() {
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<MainApp />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+    </Routes>
+  )
+}

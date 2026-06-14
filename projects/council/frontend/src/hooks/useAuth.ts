@@ -21,7 +21,10 @@ export function useAuth() {
           'X-Session-Token': token,
         },
       })
-        .then(res => res.json())
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('not authorized')
+        })
         .then(data => {
           if (data.user) {
             setUser(data.user)
@@ -40,27 +43,20 @@ export function useAuth() {
   }, [])
 
   const login = () => {
-    // Redirect to backend OAuth endpoint
     window.location.href = '/api/auth/google'
   }
 
-  const handleCallback = async () => {
-    // This is called after OAuth callback
-    // The backend returns session_token which we store
-    const response = await fetch('/api/auth/callback')
-    const data = await response.json()
-    if (data.session_token) {
-      localStorage.setItem(SESSION_KEY, data.session_token)
-      setUser(data.user)
-      return true
+  const logout = async () => {
+    const token = localStorage.getItem(SESSION_KEY)
+    if (token) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'X-Session-Token': token },
+      })
     }
-    return false
-  }
-
-  const logout = () => {
     localStorage.removeItem(SESSION_KEY)
     setUser(null)
   }
 
-  return { user, loading, login, logout, handleCallback }
+  return { user, loading, login, logout }
 }
