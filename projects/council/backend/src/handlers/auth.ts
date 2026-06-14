@@ -160,6 +160,38 @@ export async function authHandlers(fastify: FastifyInstance) {
 
   // POST /api/auth/logout - delete session
   fastify.post('/auth/logout', async (request, reply) => {
+
+  // POST /api/auth/dev-login - bypass OAuth for local dev only
+  fastify.post('/auth/dev-login', async (request, reply) => {
+    if (process.env.NODE_ENV === 'production') {
+      return reply.status(403).send({ error: 'Dev login disabled in production' });
+    }
+
+    const { email, name, picture } = request.body as { email: string; name?: string; picture?: string };
+
+    const sessionId = generateSessionId();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await createSession({
+      id: sessionId,
+      user_id: `dev_${Date.now()}`,
+      email: email || 'dev@localhost',
+      name: name || 'Local Dev User',
+      picture: picture || null,
+      expires_at: expiresAt,
+      created_at: new Date(),
+    });
+
+    return {
+      session_token: sessionId,
+      user: {
+        id: `dev_${Date.now()}`,
+        email: email || 'dev@localhost',
+        name: name || 'Local Dev User',
+        picture: picture || null,
+      },
+    };
+  });
     const token = request.headers['x-session-token'] as string;
 
     if (token) {

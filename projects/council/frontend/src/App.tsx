@@ -21,7 +21,7 @@ import AuthCallback from './pages/AuthCallback'
 type Phase = 'select' | 'socratic' | 'advice'
 
 function MainApp() {
-  const { user, loading: authLoading, login, logout } = useAuth()
+  const { user, loading: authLoading, login, logout, devLogin } = useAuth()
   const [phase, setPhase] = useState<Phase>('select')
   const [skills, setSkills] = useState<SkillInfo[]>([])
   const [selectedCounselors, setSelectedCounselors] = useState<string[]>([])
@@ -125,6 +125,12 @@ function MainApp() {
           className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
         >
           使用 Google 登录
+        </button>
+        <button
+          onClick={devLogin}
+          className="mt-3 px-8 py-3 bg-stone-400 text-white font-semibold rounded-lg hover:bg-stone-500 transition-colors text-sm"
+        >
+          本地开发登录（跳过 OAuth）
         </button>
       </div>
     )

@@ -58,5 +58,18 @@ export function useAuth() {
     setUser(null)
   }
 
-  return { user, loading, login, logout }
+  const devLogin = async () => {
+    const res = await fetch('/api/auth/dev-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'dev@localhost', name: 'Local Dev User' }),
+    })
+    const data = await res.json()
+    if (data.session_token) {
+      localStorage.setItem(SESSION_KEY, data.session_token)
+      setUser(data.user)
+    }
+  }
+
+  return { user, loading, login, logout, devLogin }
 }
