@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CounselorSkill {
-    pub name: String,
+    pub name: String,         // directory name (e.g., "zhang_liang")
+    pub display_name: String,  // display name from index.md (e.g., "张良（约前250年—前186年）")
     pub personality: Personality,
     pub cases: Vec<Case>,
     pub quotes: Quotes,

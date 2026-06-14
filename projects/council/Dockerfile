@@ -1,3 +1,12 @@
+# Build stage for frontend
+FROM node:20-slim as frontend-builder
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Rust build stage
 FROM rust:1.75-slim as builder
 WORKDIR /app
 
@@ -19,6 +28,9 @@ COPY --from=builder /app/target/release/council /usr/local/bin/
 
 # Copy skill files
 COPY --from=builder /app/backend/skills /app/skills
+
+# Copy frontend dist (from frontend build stage or local)
+COPY --from=frontend-builder /app/dist ./dist
 
 # Cloud Run expects PORT env var
 ENV PORT=8080
