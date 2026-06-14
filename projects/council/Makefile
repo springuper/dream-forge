@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend install setup
+.PHONY: dev dev-backend dev-frontend install setup stop
 
 # Start both backend and frontend
 dev:
@@ -8,8 +8,10 @@ dev:
 	@echo ""
 	@echo "Press Ctrl+C to stop both"
 	cd backend && npm run dev &
+	BACKEND_PID=$$!
 	cd frontend && npm run dev &
-	trap "kill 0" SIGINT SIGTERM
+	FRONTEND_PID=$$!
+	trap "kill $$BACKEND_PID $$FRONTEND_PID 2>/dev/null; exit 0" EXIT INT TERM
 	wait
 
 # Start backend only
