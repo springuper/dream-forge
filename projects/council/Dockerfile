@@ -6,34 +6,30 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# Rust build stage
-FROM rust:1.75-slim as builder
+# Node.js build stage for backend
+FROM node:20-slim as backend-builder
 WORKDIR /app
-
-# Copy manifests
-COPY backend/Cargo.toml backend/src ./
-
-# Install certificates for HTTPS
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Build release
-RUN cargo build --release
+COPY backend/package*.json ./
+RUN npm ci
+COPY backend/ ./
+RUN npm run build
 
 # Runtime image
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+FROM node:20-slim
+WORKDIR /app
 
-# Copy binary
-COPY --from=builder /app/target/release/council /usr/local/bin/
+# Copy backend
+COPY --from=backend-builder /app/dist ./dist
+COPY --from=backend-builder /app/package*.json ./
 
 # Copy skill files
-COPY --from=builder /app/backend/skills /app/skills
+COPY backend/skills ./skills
 
-# Copy frontend dist (from frontend build stage or local)
+# Copy frontend dist
 COPY --from=frontend-builder /app/dist ./dist
 
 # Cloud Run expects PORT env var
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["council"]
+CMD ["node", "dist/index.js"]

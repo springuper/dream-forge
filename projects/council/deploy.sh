@@ -21,6 +21,8 @@ gcloud run deploy $SERVICE_NAME \
   --set-env-vars "ANTHROPIC_MODEL=MiniMax-M2.7" \
   --set-env-vars "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
   --set-env-vars "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
+  --set-env-vars "SUPABASE_URL=$SUPABASE_URL" \
+  --set-env-vars "SUPABASE_KEY=$SUPABASE_KEY" \
   --project=$PROJECT_ID
 
 echo "Done! Check: https://console.cloud.google.com/run/detail/$REGION/$SERVICE_NAME"
