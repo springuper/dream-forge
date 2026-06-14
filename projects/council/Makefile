@@ -9,6 +9,7 @@ dev:
 	@echo "Press Ctrl+C to stop both"
 	cd backend && npm run dev &
 	cd frontend && npm run dev &
+	trap "kill 0" SIGINT SIGTERM
 	wait
 
 # Start backend only
@@ -24,9 +25,9 @@ install:
 	cd backend && npm install
 	cd frontend && npm install
 
-# Setup: install deps + start docker
+# Setup: install deps + start podman
 setup:
-	docker-compose up -d
+	podman-compose up -d
 	$(MAKE) install
 
 # Stop all services

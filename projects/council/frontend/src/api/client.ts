@@ -44,6 +44,27 @@ export interface StartConversationRequest {
   user_id: string
   problem: string
   counselors?: string[]
+  initial_problem?: string
+}
+
+export interface ConversationContext {
+  conversation_id: string
+  current_phase: string
+  current_question?: string
+  question_index: number
+}
+
+export interface ProfileHints {
+  risk_tolerance: number
+  thinking_style: string
+}
+
+export interface SkillInfo {
+  skill_id: string
+  name: string
+  description: string
+  strengths?: string[]
+  style?: string
 }
 
 export interface StartConversationResponse {
@@ -75,9 +96,15 @@ export async function listCounselors(): Promise<SkillsListResponse> {
 }
 
 export async function startConversation(req: StartConversationRequest): Promise<StartConversationResponse> {
+  // Map initial_problem → problem for backend compatibility
+  const body = {
+    user_id: req.user_id,
+    problem: req.problem || req.initial_problem || '',
+    counselors: req.counselors,
+  }
   return apiRequest('/conversation/start', {
     method: 'POST',
-    body: JSON.stringify(req),
+    body: JSON.stringify(body),
   })
 }
 
@@ -119,4 +146,12 @@ export async function answerQuestionLegacy(req: { conversation_id: string; answe
     method: 'POST',
     body: JSON.stringify(req),
   })
+}
+
+export async function completeConversation(ctx: ConversationContext): Promise<{ advice: AdviceResponse; profile_hints: ProfileHints }> {
+  // Placeholder - full workflow integration pending
+  return {
+    advice: { phase: 'finished', advice: 'Advice generation pending' },
+    profile_hints: { risk_tolerance: 0.5, thinking_style: 'rational' },
+  }
 }

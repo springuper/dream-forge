@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { initSessionTable, createSession, getSession, deleteSession } from '../db/session.js';
 
 interface GoogleTokenResponse {
@@ -25,7 +25,6 @@ function generateSessionId(): string {
 }
 
 export async function authHandlers(fastify: FastifyInstance) {
-  // Initialize DB on startup
   try {
     await initSessionTable();
     fastify.log.info('Session table initialized');
@@ -33,7 +32,6 @@ export async function authHandlers(fastify: FastifyInstance) {
     fastify.log.error('Failed to initialize session table:', e);
   }
 
-  // GET /api/auth/google - redirect to Google OAuth
   fastify.get('/auth/google', async (request, reply) => {
     const state = generateState();
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -61,7 +59,6 @@ export async function authHandlers(fastify: FastifyInstance) {
     return reply.redirect(url.toString());
   });
 
-  // POST /api/auth/callback - exchange code for session
   fastify.post('/auth/callback', async (request, reply) => {
     const { code, state } = request.body as { code: string; state: string };
 
@@ -80,7 +77,6 @@ export async function authHandlers(fastify: FastifyInstance) {
       return reply.status(500).send({ error: 'Google OAuth not configured' });
     }
 
-    // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -101,7 +97,6 @@ export async function authHandlers(fastify: FastifyInstance) {
 
     const tokenData: GoogleTokenResponse = await tokenRes.json();
 
-    // Decode id_token to get user info
     const payload = JSON.parse(Buffer.from(tokenData.id_token!.split('.')[1], 'base64').toString());
     const userInfo: GoogleUserInfo = {
       sub: payload.sub,
@@ -110,7 +105,6 @@ export async function authHandlers(fastify: FastifyInstance) {
       picture: payload.picture,
     };
 
-    // Create session (7 days)
     const sessionId = generateSessionId();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -135,7 +129,6 @@ export async function authHandlers(fastify: FastifyInstance) {
     };
   });
 
-  // GET /api/auth/me - get current user
   fastify.get('/auth/me', async (request, reply) => {
     const token = request.headers['x-session-token'] as string;
 
@@ -158,10 +151,14 @@ export async function authHandlers(fastify: FastifyInstance) {
     };
   });
 
-  // POST /api/auth/logout - delete session
   fastify.post('/auth/logout', async (request, reply) => {
+    const token = request.headers['x-session-token'] as string;
+    if (token) {
+      await deleteSession(token);
+    }
+    return { success: true };
+  });
 
-  // POST /api/auth/dev-login - bypass OAuth for local dev only
   fastify.post('/auth/dev-login', async (request, reply) => {
     if (process.env.NODE_ENV === 'production') {
       return reply.status(403).send({ error: 'Dev login disabled in production' });
@@ -191,13 +188,5 @@ export async function authHandlers(fastify: FastifyInstance) {
         picture: picture || null,
       },
     };
-  });
-    const token = request.headers['x-session-token'] as string;
-
-    if (token) {
-      await deleteSession(token);
-    }
-
-    return { success: true };
   });
 }
