@@ -31,7 +31,6 @@ export async function executeTool(
     return executeSearchTool(toolName, args);
   }
   if (askTools.some(t => t.name === toolName)) {
-    // ask_user is handled specially by the agent loop
     return `ask_user: ${args.question}`;
   }
   return `Unknown tool: ${toolName}`;

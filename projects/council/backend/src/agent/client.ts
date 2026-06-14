@@ -29,7 +29,6 @@ export async function runAgentLoop(
     const stopReason = response.stop_reason;
 
     if (stopReason === 'tool_use') {
-      // Collect tool results
       const toolUses = (response.content as any[]).filter(
         (c: any) => c.type === 'tool_use'
       );
@@ -64,7 +63,6 @@ export async function runAgentLoop(
       return text;
     }
 
-    // Handle other stop reasons
     const text = (response.content as any[]).filter((c: any) => c.type === 'text')
       .map((c: any) => c.text)
       .join('\n');

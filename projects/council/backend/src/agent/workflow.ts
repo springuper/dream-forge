@@ -2,8 +2,7 @@ import { createMachine, assign } from 'xstate';
 import { runAgentLoop, type AgentMessage } from './client.js';
 import { allTools } from './tools/index.js';
 import { buildPhaseSystemPrompt } from '../llm/prompts.js';
-import { readSkillFile } from '../skill/loader.js';
-import type { WorkflowPhase, ConversationState } from '../models/types.js';
+import type { WorkflowPhase, WorkflowContext } from '../models/types.js';
 
 // Skill content for each phase
 const PHASE_SKILLS: Record<WorkflowPhase, string> = {
@@ -76,15 +75,6 @@ For each counselor, return a JSON object:
   'finished': ''
 };
 
-export interface WorkflowContext {
-  userId: string;
-  problem: string;
-  counselors: string[];
-  socraticAnswers: { question: string; answer: string }[];
-  currentPhase: WorkflowPhase;
-  messages: AgentMessage[];
-}
-
 export const workflowMachine = createMachine({
   id: 'council-workflow',
   initial: 'start',
@@ -106,7 +96,7 @@ export const workflowMachine = createMachine({
           target: 'confirmCounselors',
           actions: assign({
             counselors: ({ event }: { event: { output: string[] } }) => event.output,
-            currentPhase: () => 'counselor-selection'
+            currentPhase: () => 'counselor-selection' as WorkflowPhase
           })
         }
       }
@@ -129,7 +119,7 @@ export const workflowMachine = createMachine({
           actions: assign({
             socraticAnswers: ({ event }: { event: { output: { answers: { question: string; answer: string }[] } } }) =>
               event.output.answers,
-            currentPhase: () => 'socratic-qa'
+            currentPhase: () => 'socratic-qa' as WorkflowPhase
           })
         }
       },
@@ -174,7 +164,6 @@ export async function runPhase(
   if (phase === 'counselor-selection') {
     const userMessage = `User problem: ${context.problem}`;
     const response = await runAgentLoop(systemPrompt, [{ role: 'user', content: userMessage }], allTools);
-    // Parse JSON response to extract counselors
     try {
       const parsed = JSON.parse(response);
       return { counselors: parsed.counselors || [] };
@@ -184,13 +173,10 @@ export async function runPhase(
   }
 
   if (phase === 'socratic-qa') {
-    // In socratic-qa, the agent asks questions and we collect answers
-    // This is a simplified version - full implementation would be async
     return { answers: context.socraticAnswers };
   }
 
   if (phase === 'advice-generation') {
-    // Generate advice based on collected information
     const userMessage = `Problem: ${context.problem}
 Counselors: ${context.counselors.join(', ')}
 Socratic Q&A: ${JSON.stringify(context.socraticAnswers)}`;

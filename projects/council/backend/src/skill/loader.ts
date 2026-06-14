@@ -3,7 +3,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import type { SkillMeta, CounselorSkill } from '../models/types.js';
 
-const SKILLS_DIR = path.join(process.cwd(), '../council/backend/skills');
+const SKILLS_DIR = path.join(process.cwd(), 'skills');
 
 export function listSkillIds(): string[] {
   if (!fs.existsSync(SKILLS_DIR)) return [];
