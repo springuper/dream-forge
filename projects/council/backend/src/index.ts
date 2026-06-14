@@ -11,8 +11,8 @@ await fastify.register(cors, {
   origin: true
 });
 
-await fastify.register(authHandlers);
-await fastify.register(conversationHandlers);
+await fastify.register(authHandlers, { prefix: '/api' });
+await fastify.register(conversationHandlers, { prefix: '/api' });
 
 fastify.get('/health', async () => {
   return { status: 'ok' };
