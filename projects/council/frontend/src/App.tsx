@@ -81,8 +81,7 @@ function MainApp() {
     setIsLoading(true)
 
     try {
-      const updatedContext = await answerQuestion({
-        conversation_id: conversationId,
+      const updatedContext = await answerQuestion(conversationId, {
         answer,
       })
 
