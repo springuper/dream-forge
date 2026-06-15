@@ -6,13 +6,8 @@ dev:
 	@echo "Backend: http://localhost:3001"
 	@echo "Frontend: http://localhost:5173"
 	@echo ""
-	@echo "Press Ctrl+C to stop both"
 	cd backend && npm run dev &
-	BACKEND_PID=$$!
 	cd frontend && npm run dev &
-	FRONTEND_PID=$$!
-	trap "kill $$BACKEND_PID $$FRONTEND_PID 2>/dev/null; exit 0" EXIT INT TERM
-	wait
 
 # Stop all services
 stop:
@@ -22,9 +17,6 @@ stop:
 	pkill -f "node.*council" 2>/dev/null; \
 	lsof -ti :3001 2>/dev/null | xargs kill -9 2>/dev/null; \
 	lsof -ti :5173 2>/dev/null | xargs kill -9 2>/dev/null; \
-	lsof -ti :5174 2>/dev/null | xargs kill -9 2>/dev/null; \
-	lsof -ti :5175 2>/dev/null | xargs kill -9 2>/dev/null; \
-	lsof -ti :5176 2>/dev/null | xargs kill -9 2>/dev/null; \
 	echo "All processes stopped"
 
 # Start backend only
