@@ -30,8 +30,9 @@ export async function conversationHandlers(fastify: FastifyInstance) {
 
     return {
       conversation_id,
-      phase: state.current_phase,
-      problem
+      current_phase: state.current_phase,
+      current_question: '请选择您想咨询的智者',
+      question_index: 0
     };
   });
 
