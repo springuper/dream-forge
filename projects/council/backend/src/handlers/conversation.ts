@@ -3,220 +3,226 @@ import { loadAllSkillMetas, readSkillFile } from '../skill/loader.js';
 import { runAgentLoop, type AgentMessage } from '../agent/client.js';
 import { allTools } from '../agent/tools/index.js';
 import { buildPhaseSystemPrompt } from '../llm/prompts.js';
-import { createConversation, getConversation, updateConversation } from '../db/conversation.js';
-import type { WorkflowPhase, SocraticAnswer } from '../models/types.js';
-
-const SOCRATIC_PHASE_PROMPT = `# Socratic Q&A Phase
-
-## Your Task
-Help the user clarify their thinking through probing questions.
-
-## Core Principles
-- Ask only ONE question at a time
-- Questions should be deep, not superficial
-- Adjust questions based on user answers
-- **When to stop**: When you feel you have fully understood the user's problem core, or when the user explicitly says they don't need to continue
-
-## Question Types
-- About "momentum": Where is the "momentum" in your current situation?
-- About risk: If this decision fails, what is the most likely cause?
-- About people: Who are the key people involved? What are their core interests?
-- About timing: Is now the right time to act, or should you wait?
-- About goals: Looking back three years from now, what do you hope to have done?
-
-## Tool Usage Strategy
-- If you need inspiration from a counselor's question style → read_skill(counselor_id, "questions")
-- If user has clear personality preferences → read_user_profile
-
-## Output Format
-Return a JSON object:
-{"question": "Your question", "context": "Why this question", "done": false}`;
+import {
+  initDb,
+  createConversation,
+  getConversation,
+  updateConversationPhase,
+  addMessage,
+  getMessages,
+  getConversationsByUser,
+} from '../db/conversation.js';
+import type { WorkflowPhase } from '../models/types.js';
 
 export async function conversationHandlers(fastify: FastifyInstance) {
-  // List all counselors
+  await initDb();
+
   fastify.get('/counselors', async () => {
-    const counselors = loadAllSkillMetas();
-    return { counselors };
+    return { counselors: loadAllSkillMetas() };
   });
 
-  // Start a new conversation
+  fastify.get('/conversation/:id', async (request) => {
+    const { id } = request.params as { id: string };
+    const conversation = await getConversation(id);
+    if (!conversation) {
+      return { error: 'Conversation not found' };
+    }
+    const messages = await getMessages(id);
+    return {
+      ...conversation,
+      messages: messages.map(m => m.content),
+    };
+  });
+
+  fastify.get('/conversations', async (request) => {
+    const { user_id } = request.query as { user_id?: string };
+    if (!user_id) {
+      return { error: 'user_id is required' };
+    }
+    const conversations = await getConversationsByUser(user_id);
+    return { conversations };
+  });
+
   fastify.post('/conversation/start', async (request) => {
     const { user_id, problem, counselors } = request.body as {
       user_id: string;
       problem: string;
       counselors?: string[];
     };
+
     const conversation_id = `conv_${Date.now()}`;
+    const chosen = counselors || [];
 
-    await createConversation(conversation_id, user_id, problem, counselors || []);
+    await createConversation(conversation_id, user_id, problem, chosen);
 
-    const state = { problem, counselors: counselors || [], socratic_answers: [] as SocraticAnswer[] };
-    const firstQuestion = await generateSocraticQuestion(state);
+    // Log initial problem as user message
+    await addMessage(conversation_id, 'user', { question: problem });
+
+    // Generate first question
+    const response = await callSocraticLoop(conversation_id, problem, chosen, []);
+    await addMessage(conversation_id, 'assistant', response);
 
     return {
       conversation_id,
       current_phase: 'socratic-qa' as WorkflowPhase,
-      current_question: firstQuestion,
-      question_index: 0
+      current_question: response.question,
+      question_index: 0,
     };
   });
 
-  // Answer a question
   fastify.post('/conversation/:conversationId/answer', async (request) => {
     const { conversationId } = request.params as { conversationId: string };
     const { answer, stop } = request.body as { answer?: string; stop?: boolean };
 
     const state = await getConversation(conversationId);
-    if (!state) {
-      return { error: 'Conversation not found' };
-    }
+    if (!state) return { error: 'Conversation not found' };
 
     if (stop) {
-      await updateConversation(conversationId, { current_phase: 'advice-generation' });
-      return {
-        phase: 'advice-generation',
-        done: true
-      };
+      await updateConversationPhase(conversationId, 'advice-generation');
+      return { phase: 'advice-generation', done: true };
     }
 
-    // Store the answer
-    if (answer && state.socratic_answers) {
-      const lastQuestion = state.socratic_answers.length > 0
-        ? state.socratic_answers[state.socratic_answers.length - 1].question
-        : '初始问题';
+    if (!answer) return { error: 'No answer provided' };
 
-      state.socratic_answers.push({ question: lastQuestion, answer });
-      await updateConversation(conversationId, { socratic_answers: state.socratic_answers });
+    const messages = await getMessages(conversationId);
+    const problem = state.problem;
+    const counselors = state.counselors;
+    const history = messages.map(m => m.role === 'user' ? m.content : m.content).filter(Boolean);
+
+    // Log user answer
+    await addMessage(conversationId, 'user', { answer });
+
+    // Get updated history after logging
+    const updatedMessages = await getMessages(conversationId);
+
+    if (updatedMessages.length >= 11) { // 1 problem + 10 Q&A pairs (5 rounds × 2)
+      await updateConversationPhase(conversationId, 'advice-generation');
+      return { phase: 'advice-generation', done: true };
     }
 
-    // Check if we've asked enough questions (max 5) or user wants to stop
-    if ((state.socratic_answers?.length || 0) >= 5) {
-      await updateConversation(conversationId, { current_phase: 'advice-generation' });
-      return {
-        phase: 'advice-generation',
-        done: true
-      };
-    }
-
-    // Generate next question using LLM
-    const nextQuestion = await generateSocraticQuestion(state);
+    const response = await callSocraticLoop(conversationId, problem, counselors, history.slice(1), answer);
+    await addMessage(conversationId, 'assistant', response);
 
     return {
       phase: state.current_phase,
-      current_question: nextQuestion,
-      question_index: state.socratic_answers?.length || 0,
-      done: false
+      current_question: response.question,
+      question_index: Math.floor(updatedMessages.length / 2),
+      done: false,
     };
   });
 
-  // Get advice
   fastify.post('/conversation/:conversationId/advice', async (request) => {
     const { conversationId } = request.params as { conversationId: string };
-
     const state = await getConversation(conversationId);
-    if (!state) {
-      return { error: 'Conversation not found' };
-    }
+    if (!state) return { error: 'Conversation not found' };
 
-    await updateConversation(conversationId, { current_phase: 'finished' });
+    await updateConversationPhase(conversationId, 'finished');
 
-    // Generate advice for each counselor
+    const messages = await getMessages(conversationId);
+    const history = messages.map(m => m.content).filter(Boolean);
+
     const advice: Record<string, { advice: string; cases_reference: string[] }> = {};
-
-    for (const counselor of state.counselors || []) {
-      const counselorAdvice = await generateCounselorAdvice(state, counselor);
-      advice[counselor] = counselorAdvice;
+    for (const counselor of state.counselors) {
+      advice[counselor] = await callCounselorAdvice(state.problem, state.counselors, history, counselor);
     }
 
-    return {
-      phase: 'finished',
-      counselors: state.counselors,
-      advice
-    };
+    return { phase: 'finished', counselors: state.counselors, advice };
   });
 
-  // Legacy API endpoints
   fastify.get('/skills', async () => {
-    const counselors = loadAllSkillMetas();
-    return { counselors };
+    return { counselors: loadAllSkillMetas() };
   });
 }
 
-async function generateSocraticQuestion(state: { problem: string; counselors?: string[]; socratic_answers?: SocraticAnswer[] }): Promise<string> {
-  const systemPrompt = buildPhaseSystemPrompt('socratic-qa', SOCRATIC_PHASE_PROMPT);
-
-  let context = `用户问题：${state.problem || '未提供'}\n\n`;
-
-  if (state.counselors?.length) {
-    context += `选择的智者：${state.counselors.join(', ')}\n\n`;
-  }
-
-  if (state.socratic_answers?.length) {
-    context += `问答历史：\n`;
-    state.socratic_answers.forEach((qa, i) => {
-      context += `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}\n`;
-    });
-    context += `\n基于以上对话，请生成下一个追问：`;
-  } else {
-    context += `请根据用户的问题生成第一个追问：`;
-  }
-
-  const messages: AgentMessage[] = [{ role: 'user', content: context }];
-
-  try {
-    const response = await runAgentLoop(systemPrompt, messages, allTools);
-    try {
-      const parsed = JSON.parse(response);
-      return parsed.question || '请继续分享更多关于您的情况';
-    } catch {
-      return response.trim();
-    }
-  } catch (e) {
-    console.error('Error generating socratic question:', e);
-    return '请继续分享更多关于您的情况';
-  }
+interface SocraticResponse {
+  question: string;
+  context?: string;
+  done?: boolean;
 }
 
-async function generateCounselorAdvice(
-  state: { problem: string; counselors?: string[]; socratic_answers?: SocraticAnswer[] },
-  counselorId: string
-): Promise<{ advice: string; cases_reference: string[] }> {
-  const [indexContent, casesContent, quotesContent, , knowledgeContent] = await Promise.all([
-    readSkillFile(counselorId, 'index'),
-    readSkillFile(counselorId, 'cases'),
-    readSkillFile(counselorId, 'quotes'),
-    readSkillFile(counselorId, 'questions'),
-    readSkillFile(counselorId, 'knowledge'),
-  ]);
+async function callSocraticLoop(
+  conversationId: string,
+  problem: string,
+  counselors: string[],
+  history: unknown[],
+  newAnswer?: string
+): Promise<SocraticResponse> {
+  const systemPrompt = buildPhaseSystemPrompt('socratic-qa', `# You ask ONE focused question at a time.
+Always respond with JSON: {"question": "...", "context": "..."}`);
 
-  const systemPrompt = buildPhaseSystemPrompt('advice-generation', `# Advice Generation Phase`);
-
-  let context = `你是 ${counselorId}，请基于以下信息给出建议。\n\n`;
-  context += `用户原始问题：${state.problem || '未提供'}\n\n`;
-
-  if (state.socratic_answers?.length) {
-    context += `问答澄清过程：\n`;
-    state.socratic_answers.forEach((qa) => {
-      context += `Q: ${qa.question}\nA: ${qa.answer}\n\n`;
-    });
+  let context = `用户问题：${problem}\n\n`;
+  if (counselors.length) context += `选择智者：${counselors.join(', ')}\n\n`;
+  if (history.length) {
+    context += `对话历史：\n${history.map((h: any) =>
+      h.answer ? `Q: ${h.question}\nA: ${h.answer}` : `Q: ${h.question}`
+    ).join('\n')}\n\n`;
   }
-
-  if (indexContent) context += `\n【Counselor Background】\n${indexContent}\n`;
-  if (casesContent) context += `\n【Relevant Historical Cases】\n${casesContent}\n`;
-  if (quotesContent) context += `\n【Counselor Quotes】\n${quotesContent}\n`;
-  if (knowledgeContent) context += `\n【Additional Knowledge】\n${knowledgeContent}\n`;
-
-  context += `\n请以 ${counselorId} 的视角，给出一段建议。`;
+  if (newAnswer) context += `最新回答：${newAnswer}\n\n`;
+  context += '请生成下一个追问（用户无需回复时请设置done:true）';
 
   try {
     const response = await runAgentLoop(systemPrompt, [{ role: 'user', content: context }], allTools);
-    const casesRef: string[] = [];
-    const caseMatches = response.match(/【.*?】/g);
-    if (caseMatches) casesRef.push(...caseMatches);
-
-    return { advice: response.trim(), cases_reference: casesRef };
+    const parsed = tryParse(response);
+    if (parsed && parsed.question) return { question: parsed.question as string, context: parsed.context as string | undefined };
+    return { question: response.trim() };
   } catch (e) {
-    console.error('Error generating advice:', e);
-    return { advice: '抱歉，暂时无法生成建议。请稍后再试。', cases_reference: [] };
+    return { question: '请继续分享您的想法' };
+  }
+}
+
+async function callCounselorAdvice(
+  problem: string,
+  counselors: string[],
+  history: unknown[],
+  counselorId: string
+): Promise<{ advice: string; cases_reference: string[] }> {
+  let context = `问题：${problem}\n选择：${counselors.join(', ')}\n\n`;
+  context += history.map((h: any) =>
+    h.answer ? `Q: ${h.question}\nA: ${h.answer}` : ''
+  ).filter(Boolean).join('\n');
+
+  const [index, cases, quotes, knowledge] = await Promise.all([
+    readSkillFile(counselorId, 'index'),
+    readSkillFile(counselorId, 'cases'),
+    readSkillFile(counselorId, 'quotes'),
+    readSkillFile(counselorId, 'knowledge'),
+  ]);
+
+  if (index) context += `\n【人物】\n${index}\n`;
+  if (cases) context += `\n【案例】\n{cases}\n`;
+  if (quotes) context += `\n【语录】\n${quotes}\n`;
+  if (knowledge) context += `\n【知识】\n${knowledge}\n`;
+
+  context += `\n以${counselorId}视角给出建议`;
+
+  try {
+    const response = await runAgentLoop(
+      buildPhaseSystemPrompt('advice', ''),
+      [{ role: 'user', content: context }],
+      allTools
+    );
+    const parsed = tryParse(response);
+    if (parsed && parsed.advice) {
+      return {
+        advice: String(parsed.advice),
+        cases_reference: Array.isArray(parsed.cases_reference) ? parsed.cases_reference.map(String) : [],
+      };
+    }
+    return { advice: response.trim(), cases_reference: [] };
+  } catch (e) {
+    return { advice: '暂时无法生成建议', cases_reference: [] };
+  }
+}
+
+function tryParse(str: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(str);
+  } catch {
+    // Try extracting JSON from markdown code block
+    const match = str.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+    if (match) {
+      try { return JSON.parse(match[1]); } catch { return null; }
+    }
+    return null;
   }
 }
