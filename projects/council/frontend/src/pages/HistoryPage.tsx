@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listConversations, type ConversationSummary } from '../api/client'
+import { getConversation, listConversations, type ConversationSummary, type ConversationDetail } from '../api/client'
 
 interface HistoryPageProps {
   userId: string
@@ -9,6 +9,8 @@ interface HistoryPageProps {
 export function HistoryPage({ userId }: HistoryPageProps) {
   const navigate = useNavigate()
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedConversation, setExpandedConversation] = useState<ConversationDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -22,6 +24,21 @@ export function HistoryPage({ userId }: HistoryPageProps) {
         setIsLoading(false)
       })
   }, [userId])
+
+  const handleExpand = async (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null)
+      setExpandedConversation(null)
+      return
+    }
+    setExpandedId(id)
+    try {
+      const data = await getConversation(id)
+      setExpandedConversation(data)
+    } catch (e) {
+      console.error('Failed to load conversation details:', e)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -51,29 +68,62 @@ export function HistoryPage({ userId }: HistoryPageProps) {
         ) : (
           <div className="space-y-4">
             {conversations.map(conv => (
-              <button
-                key={conv.id}
-                onClick={() => navigate(`/conversation/${conv.id}`)}
-                className="w-full text-left bg-white rounded-xl border border-stone-200 p-4 hover:border-amber-300 hover:shadow-md transition-all"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium text-stone-800">{conv.problem}</p>
-                    <p className="text-sm text-stone-500 mt-1">
-                      {new Date(conv.created_at).toLocaleDateString('zh-CN')}
-                    </p>
+              <div key={conv.id} className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+                <button
+                  onClick={() => handleExpand(conv.id)}
+                  className="w-full text-left p-4 hover:bg-stone-50 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-stone-800">{conv.problem}</p>
+                      <p className="text-sm text-stone-500 mt-1">
+                        {new Date(conv.created_at).toLocaleDateString('zh-CN')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        conv.current_phase === 'finished'
+                          ? 'bg-green-100 text-green-700'
+                          : conv.current_phase === 'socratic-qa'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-stone-100 text-stone-600'
+                      }`}>
+                        {conv.current_phase === 'finished' ? '已完成' : conv.current_phase === 'socratic-qa' ? '问答中' : conv.current_phase}
+                      </span>
+                      <span className="text-stone-400">{expandedId === conv.id ? '▲' : '▼'}</span>
+                    </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    conv.current_phase === 'finished'
-                      ? 'bg-green-100 text-green-700'
-                      : conv.current_phase === 'socratic-qa'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-stone-100 text-stone-600'
-                  }`}>
-                    {conv.current_phase === 'finished' ? '已完成' : conv.current_phase === 'socratic-qa' ? '问答中' : conv.current_phase}
-                  </span>
-                </div>
-              </button>
+                </button>
+
+                {expandedId === conv.id && expandedConversation && (
+                  <div className="border-t border-stone-200 p-4 bg-stone-50">
+                    <div className="space-y-4">
+                      {(expandedConversation.messages as Array<{question?: string; answer?: string}>).map((msg, i) => (
+                        <div key={i}>
+                          {msg.question && (
+                            <div className="mb-2">
+                              <p className="text-sm font-medium text-amber-700 mb-1">问题 {i + 1}:</p>
+                              <p className="text-stone-700">{msg.question}</p>
+                            </div>
+                          )}
+                          {msg.answer && (
+                            <div className="ml-4 pl-4 border-l-2 border-stone-300">
+                              <p className="text-sm font-medium text-blue-700 mb-1">回答:</p>
+                              <p className="text-stone-600">{msg.answer}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => navigate(`/conversation/${conv.id}`)}
+                      className="mt-4 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                    >
+                      查看完整建议 →
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
