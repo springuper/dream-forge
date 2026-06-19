@@ -1,28 +1,31 @@
 # GCP Cloud Run deployment script for council
 
-# Set your project ID
+set -e
+
 PROJECT_ID=dream-forge-498001
 REGION=us-central1
 SERVICE_NAME=council
+IMAGE=gcr.io/$PROJECT_ID/$SERVICE_NAME:v1
 
-# Build and push Docker image
 echo "Building Docker image..."
-gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:v1 --project=$PROJECT_ID
+docker build -t $IMAGE .
+docker push $IMAGE
 
-# Deploy to Cloud Run
 echo "Deploying to Cloud Run..."
 gcloud run deploy $SERVICE_NAME \
-  --image gcr.io/$PROJECT_ID/$SERVICE_NAME:v1 \
+  --image $IMAGE \
   --platform managed \
   --region $REGION \
   --allow-unauthenticated \
+  --set-env-vars "NODE_ENV=production" \
+  --set-env-vars "PORT=8080" \
   --set-env-vars "ANTHROPIC_BASE_URL=https://api.minimaxi.com/anthropic" \
   --set-env-vars "ANTHROPIC_AUTH_TOKEN=$ANTHROPIC_AUTH_TOKEN" \
   --set-env-vars "ANTHROPIC_MODEL=MiniMax-M2.7" \
   --set-env-vars "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
   --set-env-vars "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
-  --set-env-vars "SUPABASE_URL=$SUPABASE_URL" \
-  --set-env-vars "SUPABASE_KEY=$SUPABASE_KEY" \
+  --set-env-vars "GOOGLE_REDIRECT_URI=https://$SERVICE_NAME-$PROJECT_ID.$REGION.run.app/auth/callback" \
+  --set-env-vars "DATABASE_URL=$DATABASE_URL" \
   --project=$PROJECT_ID
 
 echo "Done! Check: https://console.cloud.google.com/run/detail/$REGION/$SERVICE_NAME"
