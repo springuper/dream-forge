@@ -104,17 +104,46 @@ export function ConversationPage({ userId }: ConversationPageProps) {
 
   // Render based on phase
   if (conversation.current_phase === 'finished' || adviceData) {
+    const handleFetchAdvice = async () => {
+      if (!id) return
+      setIsGeneratingAdvice(true)
+      try {
+        const advice = await getAdvice(id)
+        setAdviceData(advice)
+      } catch (e) {
+        console.error('Failed to get advice:', e)
+        alert('获取建议失败')
+      } finally {
+        setIsGeneratingAdvice(false)
+      }
+    }
+
     return (
       <div className="min-h-screen bg-stone-100">
-        <div className="p-4 flex justify-end">
+        <div className="p-4 flex justify-between items-center">
           <button
             onClick={() => navigate('/')}
             className="px-3 py-1 text-sm text-stone-500 border border-stone-300 rounded-lg hover:bg-stone-50 hover:text-stone-700 transition-colors"
           >
             ← 返回首页
           </button>
+          {!adviceData && (
+            <button
+              onClick={handleFetchAdvice}
+              disabled={isGeneratingAdvice}
+              className="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
+            >
+              {isGeneratingAdvice ? '生成中...' : '获取建议'}
+            </button>
+          )}
         </div>
-        <AdviceCards counselors={conversation.counselors} advice={adviceData?.advice || {}} />
+        {adviceData ? (
+          <AdviceCards counselors={conversation.counselors} advice={adviceData.advice} />
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-stone-500">点击上方按钮获取智囊团建议</p>
+          </div>
+        )}
       </div>
     )
   }
