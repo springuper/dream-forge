@@ -136,6 +136,7 @@ export async function getAdvice(conversationId: string): Promise<AdviceResponse>
 export async function generateAdvice(conversationId: string): Promise<AdviceResponse> {
   return apiRequest(`/conversation/${conversationId}/advice`, {
     method: 'POST',
+    body: JSON.stringify({}),
   })
 }
 
