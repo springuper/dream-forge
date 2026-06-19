@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { CounselorSelect } from './components/CounselorSelect'
 import { SocraticQuestions } from './components/SocraticQuestions'
 import { AdviceCards } from './components/AdviceCards'
+import { ProblemModal } from './components/ProblemModal'
 import {
   listSkills,
   startConversation,
@@ -13,7 +14,6 @@ import {
   AdviceResponse,
   ProfileHints,
   SkillInfo,
-  User,
 } from './api/client'
 import { useAuth } from './hooks/useAuth'
 import AuthCallback from './pages/AuthCallback'
@@ -34,6 +34,7 @@ function MainApp() {
   const [profileHints, setProfileHints] = useState<ProfileHints | null>(null)
   const [initialProblem, setInitialProblem] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showProblemModal, setShowProblemModal] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -41,31 +42,30 @@ function MainApp() {
     }
   }, [user])
 
-  const handleCounselorsSelected = async (counselors: string[]) => {
+  const handleCounselorsSelected = (counselors: string[]) => {
     if (counselors.length === 0 || !user) return
-
     setSelectedCounselors(counselors)
-    setIsLoading(true)
+    setShowProblemModal(true)
+  }
 
-    const problem = prompt('请描述您的问题或困境：')
-    if (!problem) {
-      setIsLoading(false)
-      return
-    }
+  const handleProblemSubmit = async (problem: string) => {
+    setShowProblemModal(false)
+    if (!user) return
 
     setInitialProblem(problem)
+    setIsLoading(true)
 
     try {
       const req: StartConversationRequest = {
         user_id: user.id,
-        counselors,
-        initial_problem: problem,
+        problem,
+        counselors: selectedCounselors,
       }
       const res = await startConversation(req)
 
       setConversationId(res.conversation_id)
-      setCurrentQuestion(res.current_question)
-      setQuestionIndex(res.question_index)
+      setCurrentQuestion(res.current_question || '')
+      setQuestionIndex(res.question_index || 0)
       setPhase('socratic')
     } catch (e) {
       console.error('Failed to start conversation:', e)
@@ -94,7 +94,7 @@ function MainApp() {
         setPhase('advice')
       } else {
         setCurrentQuestion(updatedContext.current_question!)
-        setQuestionIndex(updatedContext.question_index)
+        setQuestionIndex(updatedContext.question_index || 0)
       }
     } catch (e) {
       console.error('Failed to answer question:', e)
@@ -137,6 +137,13 @@ function MainApp() {
 
   return (
     <div className="min-h-screen bg-stone-100">
+      <ProblemModal
+        isOpen={showProblemModal}
+        onSubmit={handleProblemSubmit}
+        onClose={() => setShowProblemModal(false)}
+      />
+
+      {/* Header */}
       <div className="bg-white border-b border-stone-200 p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-stone-800">个人智囊团</h1>
         <div className="flex items-center gap-4">
@@ -153,8 +160,9 @@ function MainApp() {
         </div>
       </div>
 
+      {/* Loading overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-40">
           <div className="bg-white rounded-xl p-6 shadow-xl">
             <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-gray-600">思考中...</p>
@@ -162,6 +170,7 @@ function MainApp() {
         </div>
       )}
 
+      {/* Main content */}
       {phase === 'select' && (
         <CounselorSelect onSelect={handleCounselorsSelected} skills={skills} />
       )}

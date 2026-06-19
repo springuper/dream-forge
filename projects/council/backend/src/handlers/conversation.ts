@@ -43,24 +43,31 @@ export async function conversationHandlers(fastify: FastifyInstance) {
 
   // Start a new conversation
   fastify.post('/conversation/start', async (request) => {
-    const { user_id, problem } = request.body as { user_id: string; problem: string };
+    const { user_id, problem, counselors } = request.body as {
+      user_id: string;
+      problem: string;
+      counselors?: string[];
+    };
     const conversation_id = `conv_${Date.now()}`;
 
     const state: ConversationState = {
       user_id,
       problem,
-      counselors: [],
+      counselors: counselors || [],
       socratic_answers: [],
-      current_phase: 'counselor-selection' as WorkflowPhase,
+      current_phase: 'socratic-qa' as WorkflowPhase,
       messages: []
     };
 
     conversations.set(conversation_id, state);
 
+    // Generate first socratic question
+    const firstQuestion = await generateSocraticQuestion(state);
+
     return {
       conversation_id,
       current_phase: state.current_phase,
-      current_question: '请选择您想咨询的智者',
+      current_question: firstQuestion,
       question_index: 0
     };
   });

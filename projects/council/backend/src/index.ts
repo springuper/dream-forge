@@ -35,9 +35,12 @@ fastify.get('/health', async () => {
   return { status: 'ok' };
 });
 
-// Fallback to index.html for SPA routes
-fastify.get('*', async (request, reply) => {
-  return reply.sendFile('index.html');
+// SPA fallback: serve index.html for non-API, non-static routes
+fastify.setErrorHandler(async (error: { statusCode?: number; message?: string }, request, reply) => {
+  if (error.statusCode === 404 && !request.url.startsWith('/api/')) {
+    return reply.sendFile('index.html');
+  }
+  reply.status(error.statusCode || 500).send(error.message);
 });
 
 const port = parseInt(process.env.PORT || '3001');
