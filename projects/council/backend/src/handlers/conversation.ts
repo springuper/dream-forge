@@ -8,6 +8,7 @@ import {
   createConversation,
   getConversation,
   updateConversationPhase,
+  updateConversationAdvice,
   addMessage,
   getMessages,
   getConversationsByUser,
@@ -111,7 +112,21 @@ export async function conversationHandlers(fastify: FastifyInstance) {
     };
   });
 
+  // GET /advice - return cached advice if available
   fastify.get('/conversation/:conversationId/advice', async (request) => {
+    const { conversationId } = request.params as { conversationId: string };
+    const state = await getConversation(conversationId);
+    if (!state) return { error: 'Conversation not found' };
+
+    if (state.advice) {
+      return { phase: 'finished', counselors: state.counselors, advice: state.advice };
+    }
+
+    return { error: 'Advice not generated yet', phase: state.current_phase };
+  });
+
+  // POST /advice - generate and cache advice
+  fastify.post('/conversation/:conversationId/advice', async (request) => {
     const { conversationId } = request.params as { conversationId: string };
     const state = await getConversation(conversationId);
     if (!state) return { error: 'Conversation not found' };
@@ -125,6 +140,9 @@ export async function conversationHandlers(fastify: FastifyInstance) {
     for (const counselor of state.counselors) {
       advice[counselor] = await callCounselorAdvice(state.problem, state.counselors, history, counselor);
     }
+
+    // Cache the advice
+    await updateConversationAdvice(conversationId, advice);
 
     return { phase: 'finished', counselors: state.counselors, advice };
   });

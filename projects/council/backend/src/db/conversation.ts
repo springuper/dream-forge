@@ -9,6 +9,7 @@ export interface ConversationRow {
   counselors: string[];
   problem: string;
   current_phase: WorkflowPhase;
+  advice?: Record<string, { advice: string; cases_reference: string[] }>;
   created_at: string;
   updated_at: string;
 }
@@ -44,9 +45,20 @@ export async function initDb(): Promise<void> {
       problem TEXT NOT NULL,
       counselors TEXT[] NOT NULL DEFAULT '{}',
       current_phase TEXT NOT NULL DEFAULT 'socratic-qa',
+      advice JSONB,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
+  `);
+
+  // Add advice column if it doesn't exist (for existing tables)
+  await client.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'advice') THEN
+        ALTER TABLE conversations ADD COLUMN advice JSONB;
+      END IF;
+    END $$
   `);
   await client.query(`
     CREATE TABLE IF NOT EXISTS conversation_messages (
@@ -124,4 +136,15 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
     [userId]
   );
   return result.rows;
+}
+
+export async function updateConversationAdvice(
+  id: string,
+  advice: Record<string, { advice: string; cases_reference: string[] }>
+): Promise<void> {
+  const client = getPool();
+  await client.query(
+    'UPDATE conversations SET advice = $2, updated_at = NOW() WHERE id = $1',
+    [id, JSON.stringify(advice)]
+  );
 }
