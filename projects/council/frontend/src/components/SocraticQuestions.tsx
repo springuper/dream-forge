@@ -22,13 +22,6 @@ export function SocraticQuestions({ question, context, questionIndex, totalQuest
     setIsSubmitting(false)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
-    }
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -79,7 +72,6 @@ export function SocraticQuestions({ question, context, questionIndex, totalQuest
               rows={4}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
               placeholder="请输入您的回答..."
               disabled={isSubmitting}
             />
