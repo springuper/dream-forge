@@ -49,7 +49,7 @@ export function AdviceCards({ counselors, advice }: AdviceCardsProps) {
             </div>
 
             {/* Advice content */}
-            <div className="prose prose-stone max-w-none text-stone-700 leading-relaxed">
+            <div className="prose prose-stone max-w-none text-stone-700 leading-relaxed prose-h1:text-2xl">
               <ReactMarkdown>{counselorAdvice.advice}</ReactMarkdown>
             </div>
 
