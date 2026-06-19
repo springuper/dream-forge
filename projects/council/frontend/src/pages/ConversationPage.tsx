@@ -34,6 +34,14 @@ export function ConversationPage({ userId }: ConversationPageProps) {
           setCurrentContext(lastQuestion.context || '')
           setCurrentQuestionIndex(messages.filter(m => m.answer).length)
         }
+        // If conversation has cached advice, use it
+        if ((data as any).advice) {
+          setAdviceData({
+            phase: 'finished',
+            counselors: data.counselors,
+            advice: (data as any).advice,
+          })
+        }
         setIsLoading(false)
       })
       .catch(e => {
@@ -104,22 +112,15 @@ export function ConversationPage({ userId }: ConversationPageProps) {
 
   // Render based on phase
   if (conversation.current_phase === 'finished' || adviceData) {
-    const handleFetchAdvice = async () => {
+    const handleRegenerateAdvice = async () => {
       if (!id) return
       setIsGeneratingAdvice(true)
       try {
-        // First try GET to check cache
-        const cached = await getAdvice(id)
-        if (cached.advice) {
-          setAdviceData(cached)
-        } else {
-          // Not cached, generate with POST
-          const generated = await generateAdvice(id)
-          setAdviceData(generated)
-        }
+        const generated = await generateAdvice(id)
+        setAdviceData(generated)
       } catch (e) {
-        console.error('Failed to get advice:', e)
-        alert('获取建议失败')
+        console.error('Failed to generate advice:', e)
+        alert('生成建议失败')
       } finally {
         setIsGeneratingAdvice(false)
       }
@@ -134,15 +135,13 @@ export function ConversationPage({ userId }: ConversationPageProps) {
           >
             ← 返回首页
           </button>
-          {!adviceData && (
-            <button
-              onClick={handleFetchAdvice}
-              disabled={isGeneratingAdvice}
-              className="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
-            >
-              {isGeneratingAdvice ? '生成中...' : '获取建议'}
-            </button>
-          )}
+          <button
+            onClick={handleRegenerateAdvice}
+            disabled={isGeneratingAdvice}
+            className="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
+          >
+            {isGeneratingAdvice ? '生成中...' : '重新生成建议'}
+          </button>
         </div>
         {adviceData ? (
           <AdviceCards counselors={conversation.counselors} advice={adviceData.advice} />
