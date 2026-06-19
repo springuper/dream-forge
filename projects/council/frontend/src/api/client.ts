@@ -129,6 +129,34 @@ export async function getAdvice(conversationId: string): Promise<AdviceResponse>
   })
 }
 
+export interface ConversationDetail {
+  id: string
+  user_id: string
+  problem: string
+  counselors: string[]
+  current_phase: string
+  messages: unknown[]
+  created_at: string
+  updated_at: string
+}
+
+export interface ConversationSummary {
+  id: string
+  problem: string
+  counselors: string[]
+  current_phase: string
+  created_at: string
+  updated_at: string
+}
+
+export async function getConversation(id: string): Promise<ConversationDetail> {
+  return apiRequest(`/conversation/${id}`)
+}
+
+export async function listConversations(userId: string): Promise<{ conversations: ConversationSummary[] }> {
+  return apiRequest(`/conversations?user_id=${encodeURIComponent(userId)}`)
+}
+
 // Legacy API methods (for Rust backend compatibility)
 export async function listSkills(): Promise<SkillsListResponse> {
   return apiRequest('/skills')
