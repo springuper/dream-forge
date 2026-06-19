@@ -14,19 +14,20 @@ export function SocraticQuestions({ question, context, questionIndex, totalQuest
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async () => {
-    if (!input.trim()) return
+    if (!input.trim() || isSubmitting) return
 
-    setIsSubmitting(true)
-    await onAnswer(input.trim())
+    const answer = input.trim()
     setInput('')
+    setIsSubmitting(true)
+    await onAnswer(answer)
     setIsSubmitting(false)
   }
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-stone-200 p-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="bg-white border-b border-stone-200 p-4 flex justify-between items-center">
+        <div className="max-w-2xl mx-auto flex-1">
           <p className="text-sm text-stone-500">问题 {questionIndex + 1} / {totalQuestions}</p>
           <div className="w-full bg-stone-200 h-1 mt-2 rounded">
             <div
@@ -35,6 +36,12 @@ export function SocraticQuestions({ question, context, questionIndex, totalQuest
             />
           </div>
         </div>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="text-sm text-stone-500 hover:text-stone-700 ml-4"
+        >
+          返回首页
+        </button>
       </div>
 
       {/* Content */}
