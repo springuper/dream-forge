@@ -26,22 +26,24 @@ export function SocraticQuestions({ question, context, questionIndex, totalQuest
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-stone-200 p-4 flex justify-between items-center">
-        <div className="max-w-2xl mx-auto flex-1">
-          <p className="text-sm text-stone-500">问题 {questionIndex + 1} / {totalQuestions}</p>
-          <div className="w-full bg-stone-200 h-1 mt-2 rounded">
-            <div
-              className="bg-amber-500 h-1 rounded transition-all"
-              style={{ width: `${((questionIndex + 1) / totalQuestions) * 100}%` }}
-            />
+      <div className="bg-white border-b border-stone-200 p-4">
+        <div className="max-w-2xl mx-auto flex justify-between items-center">
+          <div>
+            <p className="text-sm text-stone-500">问题 {questionIndex + 1} / {totalQuestions}</p>
+            <div className="w-full bg-stone-200 h-1 mt-2 rounded" style={{ width: '200px' }}>
+              <div
+                className="bg-amber-500 h-1 rounded transition-all"
+                style={{ width: `${((questionIndex + 1) / totalQuestions) * 100}%` }}
+              />
+            </div>
           </div>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="px-3 py-1 text-sm text-stone-500 border border-stone-300 rounded-lg hover:bg-stone-50 hover:text-stone-700 transition-colors"
+          >
+            ← 返回首页
+          </button>
         </div>
-        <button
-          onClick={() => window.location.href = '/'}
-          className="text-sm text-stone-500 hover:text-stone-700 ml-4"
-        >
-          返回首页
-        </button>
       </div>
 
       {/* Content */}
