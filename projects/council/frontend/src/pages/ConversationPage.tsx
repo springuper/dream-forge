@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getConversation, answerQuestion, type ConversationDetail } from '../api/client'
+import { getConversation, answerQuestion, getAdvice, type ConversationDetail, type AdviceResponse } from '../api/client'
 import { SocraticQuestions } from '../components/SocraticQuestions'
 import { AdviceCards } from '../components/AdviceCards'
 
@@ -17,7 +17,8 @@ export function ConversationPage({ userId }: ConversationPageProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState('')
   const [currentContext, setCurrentContext] = useState('')
-  const [adviceData, setAdviceData] = useState<{ advice: string } | null>(null)
+  const [adviceData, setAdviceData] = useState<AdviceResponse | null>(null)
+  const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -47,8 +48,14 @@ export function ConversationPage({ userId }: ConversationPageProps) {
     try {
       const res = await answerQuestion(id, { answer })
       if (res.phase === 'advice-generation' || res.done) {
-        // TODO: Handle advice generation phase
-        setAdviceData({ advice: '建议生成中...' })
+        setIsGeneratingAdvice(true)
+        // Re-fetch conversation to get updated phase
+        const updated = await getConversation(id)
+        setConversation(updated)
+        // Call getAdvice API
+        const advice = await getAdvice(id)
+        setAdviceData(advice)
+        setIsGeneratingAdvice(false)
       } else if (res.question) {
         setCurrentQuestion(res.question)
         setCurrentContext(res.context || '')
@@ -56,6 +63,7 @@ export function ConversationPage({ userId }: ConversationPageProps) {
       }
     } catch (e) {
       console.error('Failed to submit answer:', e)
+      setIsGeneratingAdvice(false)
       alert('提交回答失败，请重试')
     }
   }
@@ -84,11 +92,29 @@ export function ConversationPage({ userId }: ConversationPageProps) {
     )
   }
 
+  // Advice generation loading
+  if (isGeneratingAdvice) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-stone-100">
+        <div className="animate-spin w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full mb-4" />
+        <p className="text-stone-600">智囊团正在商议建议...</p>
+      </div>
+    )
+  }
+
   // Render based on phase
   if (conversation.current_phase === 'finished' || adviceData) {
     return (
       <div className="min-h-screen bg-stone-100">
-        <AdviceCards counselors={conversation.counselors} advice={adviceData?.advice || ''} />
+        <div className="p-4 flex justify-end">
+          <button
+            onClick={() => navigate('/')}
+            className="px-3 py-1 text-sm text-stone-500 border border-stone-300 rounded-lg hover:bg-stone-50 hover:text-stone-700 transition-colors"
+          >
+            ← 返回首页
+          </button>
+        </div>
+        <AdviceCards counselors={conversation.counselors} advice={adviceData?.advice || {}} />
       </div>
     )
   }

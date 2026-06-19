@@ -86,9 +86,15 @@ export interface AnswerResponse {
   done?: boolean
 }
 
+export interface AdviceForCounselor {
+  advice: string
+  cases_reference?: string[]
+}
+
 export interface AdviceResponse {
   phase: 'finished'
-  advice: string
+  counselors: string[]
+  advice: Record<string, AdviceForCounselor>
 }
 
 // API methods for new TypeScript backend
@@ -124,10 +130,7 @@ export async function answerQuestion(conversationId: string, req: AnswerRequest)
 }
 
 export async function getAdvice(conversationId: string): Promise<AdviceResponse> {
-  return apiRequest(`/conversation/${conversationId}/advice`, {
-    method: 'POST',
-    body: JSON.stringify({}),
-  })
+  return apiRequest(`/conversation/${conversationId}/advice`)
 }
 
 export interface ConversationDetail {

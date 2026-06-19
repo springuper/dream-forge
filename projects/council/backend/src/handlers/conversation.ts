@@ -111,7 +111,7 @@ export async function conversationHandlers(fastify: FastifyInstance) {
     };
   });
 
-  fastify.post('/conversation/:conversationId/advice', async (request) => {
+  fastify.get('/conversation/:conversationId/advice', async (request) => {
     const { conversationId } = request.params as { conversationId: string };
     const state = await getConversation(conversationId);
     if (!state) return { error: 'Conversation not found' };
