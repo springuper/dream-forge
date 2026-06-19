@@ -49,10 +49,8 @@ export function AdviceCards({ counselors, advice }: AdviceCardsProps) {
             </div>
 
             {/* Advice content */}
-            <div className="prose prose-stone max-w-none">
-              <ReactMarkdown className="text-stone-700 leading-relaxed">
-                {counselorAdvice.advice}
-              </ReactMarkdown>
+            <div className="prose prose-stone max-w-none text-stone-700 leading-relaxed">
+              <ReactMarkdown>{counselorAdvice.advice}</ReactMarkdown>
             </div>
 
             {/* Knowledge fragments */}
