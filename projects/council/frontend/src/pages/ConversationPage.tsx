@@ -100,7 +100,7 @@ export function ConversationPage({ userId }: ConversationPageProps) {
         question={currentQuestion}
         context={currentContext}
         questionIndex={currentQuestionIndex}
-        totalQuestions={10}
+        totalQuestions={5}
         onAnswer={handleAnswer}
         initialProblem={conversation.problem}
       />
