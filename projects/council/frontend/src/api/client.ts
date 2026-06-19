@@ -133,6 +133,12 @@ export async function getAdvice(conversationId: string): Promise<AdviceResponse>
   return apiRequest(`/conversation/${conversationId}/advice`)
 }
 
+export async function generateAdvice(conversationId: string): Promise<AdviceResponse> {
+  return apiRequest(`/conversation/${conversationId}/advice`, {
+    method: 'POST',
+  })
+}
+
 export interface ConversationDetail {
   id: string
   user_id: string

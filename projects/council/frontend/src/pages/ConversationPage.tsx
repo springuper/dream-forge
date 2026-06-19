@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getConversation, answerQuestion, getAdvice, type ConversationDetail, type AdviceResponse } from '../api/client'
+import { getConversation, answerQuestion, getAdvice, generateAdvice, type ConversationDetail, type AdviceResponse } from '../api/client'
 import { SocraticQuestions } from '../components/SocraticQuestions'
 import { AdviceCards } from '../components/AdviceCards'
 
@@ -108,8 +108,15 @@ export function ConversationPage({ userId }: ConversationPageProps) {
       if (!id) return
       setIsGeneratingAdvice(true)
       try {
-        const advice = await getAdvice(id)
-        setAdviceData(advice)
+        // First try GET to check cache
+        const cached = await getAdvice(id)
+        if (cached.advice) {
+          setAdviceData(cached)
+        } else {
+          // Not cached, generate with POST
+          const generated = await generateAdvice(id)
+          setAdviceData(generated)
+        }
       } catch (e) {
         console.error('Failed to get advice:', e)
         alert('获取建议失败')
