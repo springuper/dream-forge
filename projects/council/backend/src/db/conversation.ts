@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import type { WorkflowPhase, SocraticAnswer, Message } from '../models/types.js';
+import pg from 'pg';
+import type { WorkflowPhase, SocraticAnswer } from '../models/types.js';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_KEY || '';
@@ -15,6 +16,34 @@ export interface ConversationRow {
   current_phase: WorkflowPhase;
   created_at: string;
   updated_at: string;
+}
+
+// Auto-migrate: create conversations table if not exists
+export async function initDb(): Promise<void> {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.warn('DATABASE_URL not set, skipping DB init');
+    return;
+  }
+
+  const pool = new pg.Pool({ connectionString });
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS conversations (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        counselors TEXT[] NOT NULL DEFAULT '{}',
+        problem TEXT NOT NULL,
+        socratic_answers JSONB NOT NULL DEFAULT '[]',
+        current_phase TEXT NOT NULL DEFAULT 'socratic-qa',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    console.log('Conversations table ready');
+  } finally {
+    await pool.end();
+  }
 }
 
 export async function createConversation(

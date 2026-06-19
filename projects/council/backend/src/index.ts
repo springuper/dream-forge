@@ -5,6 +5,7 @@ import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initDb } from './db/conversation.js';
 import { authHandlers } from './handlers/auth.js';
 import { conversationHandlers } from './handlers/conversation.js';
 
@@ -44,6 +45,10 @@ fastify.setErrorHandler(async (error: { statusCode?: number; message?: string },
 });
 
 const port = parseInt(process.env.PORT || '3001');
+
+// Auto-migrate DB before serving
+await initDb();
+
 await fastify.listen({ port, host: '0.0.0.0' });
 
 console.log(`Council backend running on port ${port}`);
