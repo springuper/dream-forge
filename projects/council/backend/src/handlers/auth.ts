@@ -29,7 +29,7 @@ export async function authHandlers(fastify: FastifyInstance) {
     await initSessionTable();
     fastify.log.info('Session table initialized');
   } catch (e) {
-    fastify.log.error('Failed to initialize session table:', e);
+    fastify.log.error({ err: e }, 'Failed to initialize session table');
   }
 
   fastify.get('/auth/google', async (request, reply) => {
@@ -91,7 +91,7 @@ export async function authHandlers(fastify: FastifyInstance) {
 
     if (!tokenRes.ok) {
       const err = await tokenRes.text();
-      fastify.log.error('Google token exchange failed:', err);
+      fastify.log.error({ err }, 'Google token exchange failed');
       return reply.status(401).send({ error: 'OAuth exchange failed' });
     }
 

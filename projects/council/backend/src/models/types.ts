@@ -28,9 +28,19 @@ export type WorkflowPhase =
 export interface ConversationState {
   user_id: string;
   counselors: string[];
-  initial_problem: string;
+  problem: string;
+  initial_problem?: string;
   socratic_answers: SocraticAnswer[];
   current_phase: WorkflowPhase;
+  messages: Message[];
+}
+
+export interface WorkflowContext {
+  userId: string;
+  problem: string;
+  counselors: string[];
+  socraticAnswers: { question: string; answer: string }[];
+  currentPhase: WorkflowPhase;
   messages: Message[];
 }
 

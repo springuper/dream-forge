@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,6 +17,8 @@ const fastify = Fastify({
 await fastify.register(cors, {
   origin: true
 });
+
+await fastify.register(cookie);
 
 // Serve frontend static files
 await fastify.register(fastifyStatic, {

@@ -8,8 +8,8 @@ SERVICE_NAME=council
 IMAGE=gcr.io/$PROJECT_ID/$SERVICE_NAME:v1
 
 echo "Building Docker image..."
-docker build -t $IMAGE .
-docker push $IMAGE
+podman build -t $IMAGE .
+podman push $IMAGE
 
 echo "Deploying to Cloud Run..."
 gcloud run deploy $SERVICE_NAME \
@@ -25,7 +25,7 @@ gcloud run deploy $SERVICE_NAME \
   --set-env-vars "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
   --set-env-vars "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
   --set-env-vars "GOOGLE_REDIRECT_URI=https://$SERVICE_NAME-$PROJECT_ID.$REGION.run.app/auth/callback" \
-  --set-env-vars "DATABASE_URL=$DATABASE_URL" \
+  --set-env-vars "DATABASE_URL=postgresql://postgres:17jnmkdfnd998dfUK@db.vpzmlojlabwkyspvybew.supabase.co:5432/postgres" \
   --project=$PROJECT_ID
 
 echo "Done! Check: https://console.cloud.google.com/run/detail/$REGION/$SERVICE_NAME"
