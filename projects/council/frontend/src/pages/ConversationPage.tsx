@@ -42,19 +42,6 @@ export function ConversationPage({ userId }: ConversationPageProps) {
       })
   }, [id])
 
-  // Fetch advice when conversation is finished
-  useEffect(() => {
-    if (!id || !conversation || conversation.current_phase !== 'finished' || adviceData) return
-
-    setIsGeneratingAdvice(true)
-    getAdvice(id).then(advice => {
-      setAdviceData(advice)
-      setIsGeneratingAdvice(false)
-    }).catch(() => {
-      setIsGeneratingAdvice(false)
-    })
-  }, [id, conversation?.current_phase, adviceData])
-
   const handleAnswer = async (answer: string) => {
     if (!id) return
 
