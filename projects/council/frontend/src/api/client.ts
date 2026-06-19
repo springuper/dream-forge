@@ -82,6 +82,7 @@ export interface AnswerRequest {
 export interface AnswerResponse {
   phase: 'socratic-qa' | 'advice-generation' | 'finished'
   question?: string
+  context?: string
   done?: boolean
 }
 

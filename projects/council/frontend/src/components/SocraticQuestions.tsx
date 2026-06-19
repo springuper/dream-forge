@@ -2,13 +2,14 @@ import { useState } from 'react'
 
 interface SocraticQuestionsProps {
   question: string
+  context?: string
   questionIndex: number
   totalQuestions: number
   onAnswer: (answer: string) => void
   initialProblem: string
 }
 
-export function SocraticQuestions({ question, questionIndex, totalQuestions, onAnswer, initialProblem }: SocraticQuestionsProps) {
+export function SocraticQuestions({ question, context, questionIndex, totalQuestions, onAnswer, initialProblem }: SocraticQuestionsProps) {
   const [input, setInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -60,6 +61,13 @@ export function SocraticQuestions({ question, questionIndex, totalQuestions, onA
               {question}
             </h2>
           </div>
+
+          {/* Context */}
+          {context && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8">
+              <p className="text-sm text-blue-700 whitespace-pre-wrap">{context}</p>
+            </div>
+          )}
 
           {/* Answer input */}
           <div className="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">

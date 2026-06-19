@@ -16,6 +16,7 @@ export function ConversationPage({ userId }: ConversationPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState('')
+  const [currentContext, setCurrentContext] = useState('')
   const [adviceData, setAdviceData] = useState<{ advice: string } | null>(null)
 
   useEffect(() => {
@@ -25,10 +26,11 @@ export function ConversationPage({ userId }: ConversationPageProps) {
       .then(data => {
         setConversation(data)
         // Find last unanswered question from messages
-        const messages = data.messages as Array<{ question?: string; answer?: string }>
+        const messages = data.messages as Array<{ question?: string; answer?: string; context?: string }>
         const lastQuestion = messages.filter(m => m.question).pop()
         if (lastQuestion?.question) {
           setCurrentQuestion(lastQuestion.question)
+          setCurrentContext(lastQuestion.context || '')
           setCurrentQuestionIndex(messages.filter(m => m.answer).length)
         }
         setIsLoading(false)
@@ -49,6 +51,7 @@ export function ConversationPage({ userId }: ConversationPageProps) {
         setAdviceData({ advice: '建议生成中...' })
       } else if (res.question) {
         setCurrentQuestion(res.question)
+        setCurrentContext(res.context || '')
         setCurrentQuestionIndex(prev => prev + 1)
       }
     } catch (e) {
@@ -95,6 +98,7 @@ export function ConversationPage({ userId }: ConversationPageProps) {
     <div className="min-h-screen bg-stone-100">
       <SocraticQuestions
         question={currentQuestion}
+        context={currentContext}
         questionIndex={currentQuestionIndex}
         totalQuestions={10}
         onAnswer={handleAnswer}
