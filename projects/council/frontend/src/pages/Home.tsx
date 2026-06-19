@@ -41,6 +41,13 @@ export function Home({ userId }: HomeProps) {
         >
           开始新会话
         </button>
+
+        <button
+          onClick={() => navigate('/history')}
+          className="w-full py-2 px-4 mt-4 text-stone-500 hover:text-stone-700 text-sm"
+        >
+          查看历史会话 →
+        </button>
       </div>
     </div>
   )

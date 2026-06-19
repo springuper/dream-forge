@@ -4,6 +4,7 @@ import AuthCallback from './pages/AuthCallback'
 import { Home } from './pages/Home'
 import { CounselorSelectPage } from './pages/CounselorSelectPage'
 import { ConversationPage } from './pages/ConversationPage'
+import { HistoryPage } from './pages/HistoryPage'
 
 function App() {
   const { user, loading, login, logout, devLogin } = useAuth()
@@ -44,6 +45,7 @@ function App() {
       <Route path="/" element={<Home userId={user.id} />} />
       <Route path="/counselors" element={<CounselorSelectPage userId={user.id} />} />
       <Route path="/conversation/:id" element={<ConversationPage userId={user.id} />} />
+      <Route path="/history" element={<HistoryPage userId={user.id} />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
