@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { AdviceForCounselor } from './api/client'
 import { KnowledgeFragments } from './KnowledgeFragments'
 
@@ -49,9 +50,9 @@ export function AdviceCards({ counselors, advice }: AdviceCardsProps) {
 
             {/* Advice content */}
             <div className="prose prose-stone max-w-none">
-              <div className="text-stone-700 leading-relaxed whitespace-pre-wrap">
+              <ReactMarkdown className="text-stone-700 leading-relaxed">
                 {counselorAdvice.advice}
-              </div>
+              </ReactMarkdown>
             </div>
 
             {/* Knowledge fragments */}
