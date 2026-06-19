@@ -1,110 +1,14 @@
-import { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { CounselorSelect } from './components/CounselorSelect'
-import { SocraticQuestions } from './components/SocraticQuestions'
-import { AdviceCards } from './components/AdviceCards'
-import { ProblemModal } from './components/ProblemModal'
-import {
-  listSkills,
-  startConversation,
-  answerQuestion,
-  completeConversation,
-  StartConversationRequest,
-  ConversationContext,
-  AdviceResponse,
-  ProfileHints,
-  SkillInfo,
-} from './api/client'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import AuthCallback from './pages/AuthCallback'
+import { Home } from './pages/Home'
+import { CounselorSelectPage } from './pages/CounselorSelectPage'
+import { ConversationPage } from './pages/ConversationPage'
 
-type Phase = 'select' | 'socratic' | 'advice'
+function App() {
+  const { user, loading, login, logout, devLogin } = useAuth()
 
-function MainApp() {
-  const { user, loading: authLoading, login, logout, devLogin } = useAuth()
-  const [phase, setPhase] = useState<Phase>('select')
-  const [skills, setSkills] = useState<SkillInfo[]>([])
-  const [selectedCounselors, setSelectedCounselors] = useState<string[]>([])
-  const [conversationId, setConversationId] = useState<string>('')
-  const [currentQuestion, setCurrentQuestion] = useState<string>('')
-  const [questionIndex, setQuestionIndex] = useState(0)
-  const [totalQuestions] = useState(5)
-  const [context, setContext] = useState<ConversationContext | null>(null)
-  const [adviceData, setAdviceData] = useState<AdviceResponse | null>(null)
-  const [profileHints, setProfileHints] = useState<ProfileHints | null>(null)
-  const [initialProblem, setInitialProblem] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [showProblemModal, setShowProblemModal] = useState(false)
-
-  useEffect(() => {
-    if (user) {
-      listSkills().then(setSkills).catch(console.error)
-    }
-  }, [user])
-
-  const handleCounselorsSelected = (counselors: string[]) => {
-    if (counselors.length === 0 || !user) return
-    setSelectedCounselors(counselors)
-    setShowProblemModal(true)
-  }
-
-  const handleProblemSubmit = async (problem: string) => {
-    setShowProblemModal(false)
-    if (!user) return
-
-    setInitialProblem(problem)
-    setIsLoading(true)
-
-    try {
-      const req: StartConversationRequest = {
-        user_id: user.id,
-        problem,
-        counselors: selectedCounselors,
-      }
-      const res = await startConversation(req)
-
-      setConversationId(res.conversation_id)
-      setCurrentQuestion(res.current_question || '')
-      setQuestionIndex(res.question_index || 0)
-      setPhase('socratic')
-    } catch (e) {
-      console.error('Failed to start conversation:', e)
-      alert('启动对话失败，请重试')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSocraticAnswer = async (answer: string) => {
-    if (!conversationId || !user) return
-
-    setIsLoading(true)
-
-    try {
-      const updatedContext = await answerQuestion(conversationId, {
-        answer,
-      })
-
-      setContext(updatedContext)
-
-      if (updatedContext.current_phase === 'WaitingForAdvice' || !updatedContext.current_question) {
-        const { advice, profile_hints } = await completeConversation(updatedContext)
-        setAdviceData(advice)
-        setProfileHints(profile_hints)
-        setPhase('advice')
-      } else {
-        setCurrentQuestion(updatedContext.current_question!)
-        setQuestionIndex(updatedContext.question_index || 0)
-      }
-    } catch (e) {
-      console.error('Failed to answer question:', e)
-      alert('提交回答失败，请重试')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (authLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-100">
         <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full" />
@@ -136,81 +40,14 @@ function MainApp() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-100">
-      <ProblemModal
-        isOpen={showProblemModal}
-        onSubmit={handleProblemSubmit}
-        onClose={() => setShowProblemModal(false)}
-      />
-
-      {/* Header */}
-      <div className="bg-white border-b border-stone-200 p-4 flex justify-between items-center">
-        <h1 className="text-xl font-semibold text-stone-800">个人智囊团</h1>
-        <div className="flex items-center gap-4">
-          {user.picture && (
-            <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
-          )}
-          <span className="text-sm text-stone-600">{user.name || user.email}</span>
-          <button
-            onClick={logout}
-            className="text-sm text-stone-500 hover:text-stone-700"
-          >
-            退出
-          </button>
-        </div>
-      </div>
-
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-40">
-          <div className="bg-white rounded-xl p-6 shadow-xl">
-            <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-gray-600">思考中...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Main content */}
-      {phase === 'select' && (
-        <CounselorSelect onSelect={handleCounselorsSelected} skills={skills} />
-      )}
-
-      {phase === 'socratic' && (
-        <SocraticQuestions
-          question={currentQuestion}
-          questionIndex={questionIndex}
-          totalQuestions={totalQuestions}
-          onAnswer={handleSocraticAnswer}
-          initialProblem={initialProblem}
-        />
-      )}
-
-      {phase === 'advice' && adviceData && (
-        <>
-          {profileHints && (
-            <div className="mx-6 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-              <p className="text-amber-800">
-                根据您的回答，我们理解您是：
-                {profileHints.risk_tolerance > 0.6 ? '愿意承担风险的' : profileHints.risk_tolerance > 0.3 ? '风险偏好中性的' : '倾向于稳健保守的'}，
-                {profileHints.thinking_style}的思考者。
-              </p>
-            </div>
-          )}
-          <AdviceCards
-            counselors={selectedCounselors}
-            advice={adviceData.advice}
-          />
-        </>
-      )}
-    </div>
-  )
-}
-
-export default function App() {
-  return (
     <Routes>
-      <Route path="/" element={<MainApp />} />
+      <Route path="/" element={<Home userId={user.id} />} />
+      <Route path="/counselors" element={<CounselorSelectPage userId={user.id} />} />
+      <Route path="/conversation/:id" element={<ConversationPage userId={user.id} />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
+
+export default App
