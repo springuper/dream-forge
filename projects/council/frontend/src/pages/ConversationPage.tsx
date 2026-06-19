@@ -34,6 +34,16 @@ export function ConversationPage({ userId }: ConversationPageProps) {
           setCurrentContext(lastQuestion.context || '')
           setCurrentQuestionIndex(messages.filter(m => m.answer).length)
         }
+        // If already finished, fetch advice
+        if (data.current_phase === 'finished' && !adviceData) {
+          setIsGeneratingAdvice(true)
+          getAdvice(id).then(advice => {
+            setAdviceData(advice)
+            setIsGeneratingAdvice(false)
+          }).catch(() => {
+            setIsGeneratingAdvice(false)
+          })
+        }
         setIsLoading(false)
       })
       .catch(e => {
