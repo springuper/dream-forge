@@ -21,6 +21,7 @@ export interface CounselorSkill {
 
 export type WorkflowPhase =
   | 'counselor-selection'
+  | 'problem-input'
   | 'socratic-qa'
   | 'advice-generation'
   | 'finished';
