@@ -12,7 +12,17 @@ import { conversationHandlers } from './handlers/conversation.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const fastify = Fastify({
-  logger: true
+  logger: {
+    level: 'info',
+    transport: process.env.NODE_ENV === 'production' ? undefined : {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss.l',
+        ignore: 'pid,hostname,reqId',
+      }
+    }
+  }
 });
 
 await fastify.register(cors, {
