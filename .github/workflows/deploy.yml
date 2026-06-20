@@ -34,11 +34,9 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Login to Artifact Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGION }}-docker.pkg.dev
-          username: oauth2accesstoken
-          password: ${{ env.GOOGLE_ACCESS_TOKEN }}
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin ${{ env.REGION }}-docker.pkg.dev
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
