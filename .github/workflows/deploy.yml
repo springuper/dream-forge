@@ -29,7 +29,6 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
           workload_identity_provider: projects/932791894694/locations/global/workloadIdentityPools/github-pool
-          audience: //iam.googleapis.com/projects/932791894694/locations/global/workloadIdentityPools/github-pool
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
