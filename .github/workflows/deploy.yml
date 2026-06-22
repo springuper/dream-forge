@@ -38,16 +38,14 @@ jobs:
         run: |
           TOKEN=$(gcloud auth print-access-token)
           echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin ${{ env.REGION }}-docker.pkg.dev
-          echo "=== Docker config ==="
-          cat ~/.docker/config.json
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./projects/council
-          file: ./projects/council/Dockerfile
-          push: true
-          tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ./projects/council
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
