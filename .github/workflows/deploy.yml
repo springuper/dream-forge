@@ -38,6 +38,8 @@ jobs:
         run: |
           TOKEN=$(gcloud auth print-access-token)
           echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin ${{ env.REGION }}-docker.pkg.dev
+          echo "=== Docker config ==="
+          cat ~/.docker/config.json
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
