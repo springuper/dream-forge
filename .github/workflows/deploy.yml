@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to GCP
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           project_id: ${{ env.PROJECT_ID }}
@@ -34,14 +35,19 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Login to Artifact Registry
-        run: |
-          TOKEN=$(gcloud auth print-access-token)
-          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin ${{ env.REGION }}-docker.pkg.dev
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: gcloud auth print-access-token
 
       - name: Build and push Docker image
-        run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ./projects/council
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./projects/council
+          file: ./projects/council/Dockerfile
+          push: true
+          tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
