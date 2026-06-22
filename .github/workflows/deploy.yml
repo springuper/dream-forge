@@ -34,30 +34,23 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Login to Artifact Registry
+      - name: Build and push Docker image via Cloud Build
         run: |
-          TOKEN=$(gcloud auth print-access-token)
-          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin ${{ env.REGION }}-docker.pkg.dev
-
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ./projects/council
-
-      - name: Push Docker image
-        run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          gcloud builds submit --tag "$IMAGE" --project="${{ env.PROJECT_ID }}" ./projects/council
 
       - name: Deploy to Cloud Run
         run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --image "$IMAGE" \
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
             --set-env-vars "NODE_ENV=production" \
             --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
             --set-env-vars "ANTHROPIC_BASE_URL=${{ secrets.ANTHROPIC_BASE_URL }}" \
-            --set-env-vars "ANTHROPIC_AUTH_TOKEN=${{ secrets.ANTHROPIC_AUTH_TOKEN }}" \
+            --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" \
             --set-env-vars "ANTHROPIC_MODEL=${{ secrets.ANTHROPIC_MODEL }}" \
             --set-env-vars "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
             --set-env-vars "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" \
