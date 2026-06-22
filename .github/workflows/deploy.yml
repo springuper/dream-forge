@@ -37,6 +37,14 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker --quiet ${{ env.REGION }}-docker.pkg.dev
 
+      - name: Verify GCP identity
+        run: |
+          echo "=== GCP Identity ==="
+          gcloud auth list
+          echo ""
+          echo "=== Token Info ==="
+          gcloud auth print-identity-token --audiences=https://asia-east1-docker.pkg.dev 2>&1 | head -5 || echo "Token generation failed or not supported"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
