@@ -37,7 +37,13 @@ jobs:
       - name: Build and push Docker image via Cloud Build
         run: |
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
-          gcloud builds submit --tag "$IMAGE" --project="${{ env.PROJECT_ID }}" ./projects/council
+          SA="projects/${{ env.PROJECT_ID }}/serviceAccounts/github-actions@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+          gcloud builds submit \
+            --tag "$IMAGE" \
+            --project="${{ env.PROJECT_ID }}" \
+            --service-account="$SA" \
+            --gcs-log-dir="gs://${{ env.PROJECT_ID }}_cloudbuild/logs" \
+            ./projects/council
 
       - name: Deploy to Cloud Run
         run: |
